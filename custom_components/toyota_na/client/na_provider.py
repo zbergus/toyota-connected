@@ -7,6 +7,7 @@ from typing import Any, Callable
 
 from .auth import ToyotaAuth
 from .base_provider import ToyotaRegionProvider
+from .brands import DEFAULT_BRAND, BrandConfig, get_brand
 from .graphql import (
     GET_VEHICLE_STATUS_QUERY,
     POST_CHARGE_SETTINGS_MUTATION,
@@ -26,15 +27,21 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class NorthAmericaProvider(ToyotaRegionProvider):
-    """Regional backend provider for North America (specifically targeting Canada and USA)."""
+    """Regional backend provider for North America (Toyota, Lexus, and Subaru)."""
 
     def __init__(
         self,
         token_callback: Callable[[dict[str, Any]], None] | None = None,
         initial_tokens: dict[str, Any] | None = None,
+        brand: BrandConfig | str = DEFAULT_BRAND,
     ) -> None:
-        self.auth = ToyotaAuth(token_callback=token_callback, initial_tokens=initial_tokens)
-        self.rest = ToyotaRestClient(self.auth)
+        self.brand = get_brand(brand)
+        self.auth = ToyotaAuth(
+            token_callback=token_callback,
+            initial_tokens=initial_tokens,
+            auth_host=self.brand.auth_host,
+        )
+        self.rest = ToyotaRestClient(self.auth, brand=self.brand)
         self.ws: ToyotaAppSyncWebSocket | None = None
 
     @property
@@ -56,13 +63,22 @@ class NorthAmericaProvider(ToyotaRegionProvider):
         await self.auth.check_tokens()
 
     def get_tokens(self) -> dict[str, Any]:
-        return self.auth.get_tokens()
+        tokens = self.auth.get_tokens()
+        tokens["brand"] = self.brand.brand_id
+        return tokens
 
     def set_tokens(self, tokens: dict[str, Any]) -> None:
         self.auth.set_tokens(tokens)
 
     async def get_user_vehicles(self) -> list[VehicleStatus]:
         raw_list = await self.rest.get_vehicle_list()
+
+        # Handle empty vehicle discovery bootstrap (Subaru Solterra accounts)
+        if not raw_list and self.brand.bootstrap_on_empty:
+            _LOGGER.info("Subaru vehicle list empty; running v4/account bootstrap")
+            await self.rest.bootstrap_account()
+            raw_list = await self.rest.get_vehicle_list()
+
         vehicles: list[VehicleStatus] = []
 
         for item in raw_list:
@@ -82,10 +98,11 @@ class NorthAmericaProvider(ToyotaRegionProvider):
 
             v = VehicleStatus(
                 vin=vin,
-                model_name=item.get("modelName") or "Toyota Vehicle",
+                model_name=item.get("modelName") or f"{self.brand.name} Vehicle",
                 model_year=str(item.get("modelYear") or "2024"),
                 generation=gen,
                 region=region,
+                manufacturer=self.brand.manufacturer,
                 subscribed=sub_status,
                 is_electric=is_ev,
                 backdoor_type=item.get("backdoorType") or "hatch",
@@ -95,8 +112,8 @@ class NorthAmericaProvider(ToyotaRegionProvider):
         return vehicles
 
     async def update_vehicle_status(self, vehicle: VehicleStatus) -> VehicleStatus:
-        # For 24MM (bZ4X) or 21MM, AppSync query returns complete telemetry & state
-        if vehicle.generation in (VehicleGeneration.MM24, VehicleGeneration.MM21, VehicleGeneration.CY17PLUS):
+        # For 24MM (bZ4X/Solterra) or 21MM, AppSync query returns complete telemetry & state
+        if vehicle.generation in (VehicleGeneration.MM25, VehicleGeneration.MM24, VehicleGeneration.MM21, VehicleGeneration.CY17PLUS):
             try:
                 result = await execute_graphql(
                     self.auth,
@@ -104,6 +121,8 @@ class NorthAmericaProvider(ToyotaRegionProvider):
                     {"vin": vehicle.vin},
                     vin=vehicle.vin,
                     region=vehicle.region,
+                    brand_code=self.brand.code,
+                    user_agent=self.brand.user_agent,
                 )
                 if result:
                     parse_appsync_vehicle_status(result, vehicle)
@@ -136,6 +155,8 @@ class NorthAmericaProvider(ToyotaRegionProvider):
             variables,
             vin=vin,
             region="CA",
+            brand_code=self.brand.code,
+            user_agent=self.brand.user_agent,
         )
 
     async def set_charge_limit(self, vin: str, target_percent: int) -> dict[str, Any]:
@@ -146,6 +167,8 @@ class NorthAmericaProvider(ToyotaRegionProvider):
             variables,
             vin=vin,
             region="CA",
+            brand_code=self.brand.code,
+            user_agent=self.brand.user_agent,
         )
 
     async def set_ac_current_limit(self, vin: str, max_amps: int) -> dict[str, Any]:
@@ -156,6 +179,8 @@ class NorthAmericaProvider(ToyotaRegionProvider):
             variables,
             vin=vin,
             region="CA",
+            brand_code=self.brand.code,
+            user_agent=self.brand.user_agent,
         )
 
     async def start_realtime_listener(
@@ -163,7 +188,7 @@ class NorthAmericaProvider(ToyotaRegionProvider):
         vins: list[str],
         callback: Callable[[str, dict[str, Any]], None],
     ) -> None:
-        self.ws = ToyotaAppSyncWebSocket(self.auth, callback)
+        self.ws = ToyotaAppSyncWebSocket(self.auth, callback, brand_code=self.brand.code)
         await self.ws.start(vins, region="CA")
 
     async def stop_realtime_listener(self) -> None:

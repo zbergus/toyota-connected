@@ -12,6 +12,7 @@ class VehicleGeneration(str, Enum):
     CY17PLUS = "17CYPLUS"
     MM21 = "21MM"
     MM24 = "24MM"
+    MM25 = "25MM"
     GR86 = "GR86"
     PRE17CY = "PRE17CY"
     UNKNOWN = "UNKNOWN"
@@ -81,6 +82,7 @@ class VehicleStatus:
     model_year: str
     generation: VehicleGeneration
     region: str = "CA"                             # Default "CA" for Canada, "US" for USA
+    manufacturer: str = "Toyota"                   # "Toyota", "Lexus", or "Subaru"
     subscribed: bool = True
     is_electric: bool = False                      # True for bZ4X
     backdoor_type: str = "hatch"

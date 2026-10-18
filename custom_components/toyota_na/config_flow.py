@@ -9,7 +9,7 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 import voluptuous as vol
 
-from .client import ToyotaRegionProvider, create_toyota_provider
+from .client import ToyotaRegionProvider, create_toyota_provider, get_brand
 from .client.auth import AuthError, LoginError
 from .const import DOMAIN
 
@@ -20,28 +20,37 @@ REGION_CHOICES = {
     "eu": "Europe (EU, UK)",
 }
 
+BRAND_CHOICES = {
+    "toyota": "Toyota",
+    "lexus": "Lexus",
+    "subaru": "Subaru (Solterra Connect)",
+}
+
 
 class ToyotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Toyota Connected Services."""
+    """Handle a config flow for Toyota, Lexus, and Subaru Connected Services."""
 
     VERSION = 1
 
     def __init__(self) -> None:
         self._region: str = "na"
+        self._brand: str = "toyota"
         self._provider: ToyotaRegionProvider | None = None
         self._username: str | None = None
         self._password: str | None = None
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Step 1: Choose geographic region."""
+        """Step 1: Choose geographic region and vehicle brand."""
         if user_input is not None:
             self._region = user_input["region"]
-            self._provider = create_toyota_provider(self._region)
+            self._brand = user_input.get("brand", "toyota")
+            self._provider = create_toyota_provider(region=self._region, brand=self._brand)
             return await self.async_step_credentials()
 
         schema = vol.Schema(
             {
                 vol.Required("region", default="na"): vol.In(REGION_CHOICES),
+                vol.Required("brand", default="toyota"): vol.In(BRAND_CHOICES),
             }
         )
         return self.async_show_form(step_id="user", data_schema=schema)
@@ -111,11 +120,12 @@ class ToyotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         tokens = self._provider.get_tokens() if self._provider else {}
         guid = tokens.get("guid") or self._username
 
-        await self.async_set_unique_id(f"{DOMAIN}:{self._region}:{guid}")
+        await self.async_set_unique_id(f"{DOMAIN}:{self._region}:{self._brand}:{guid}")
         self._abort_if_unique_id_configured()
 
         entry_data = {
             "region": self._region,
+            "brand": self._brand,
             "tokens": tokens,
             "username": self._username,
             "guid": guid,
@@ -124,15 +134,21 @@ class ToyotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Clear plaintext password from memory
         self._password = None
 
-        region_label = "North America" if self._region == "na" else "Europe"
+        if self._region == "na":
+            brand_label = get_brand(self._brand).name
+            title = f"{brand_label} ({self._username})"
+        else:
+            title = f"Toyota Europe ({self._username})"
+
         return self.async_create_entry(
-            title=f"Toyota {region_label} ({self._username})",
+            title=title,
             data=entry_data,
         )
 
     async def async_step_reauth(self, entry_data: dict[str, Any]) -> FlowResult:
         """Handle reauthorization if refresh tokens expire."""
         self._region = entry_data.get("region", "na")
+        self._brand = entry_data.get("brand", "toyota")
         self._username = entry_data.get("username")
-        self._provider = create_toyota_provider(self._region)
+        self._provider = create_toyota_provider(self._region, brand=self._brand)
         return await self.async_step_credentials()

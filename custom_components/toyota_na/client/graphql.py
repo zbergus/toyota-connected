@@ -334,6 +334,8 @@ async def execute_graphql(
     variables: dict[str, Any],
     vin: str = "",
     region: str = "CA",
+    brand_code: str = "T",
+    user_agent: str | None = None,
 ) -> dict[str, Any]:
     """Execute GraphQL query or mutation against AppSync endpoint."""
     token = await auth.get_access_token()
@@ -347,13 +349,15 @@ async def execute_graphql(
         "vin": vin,
         "x-guid": guid,
         "x-deviceid": auth.device_id,
-        "X-APPBRAND": "T",
+        "X-BRAND": brand_code,
+        "X-APPBRAND": brand_code,
+        "X-Brand-Id": brand_code,
         "x-channel": "ONEAPP",
         "X-APPVERSION": "3.10.0",
         "X-OSNAME": "Android",
         "X-OSVERSION": "14",
         "x-region": region,
-        "User-Agent": USER_AGENT,
+        "User-Agent": user_agent or USER_AGENT,
     }
 
     payload = json.dumps({"query": query, "variables": variables})
@@ -377,9 +381,15 @@ async def execute_graphql(
 class ToyotaAppSyncWebSocket:
     """Manages persistent AppSync WebSocket for realtime vehicle status & command callbacks."""
 
-    def __init__(self, auth: ToyotaAuth, status_callback: Callable[[str, dict[str, Any]], None]) -> None:
+    def __init__(
+        self,
+        auth: ToyotaAuth,
+        status_callback: Callable[[str, dict[str, Any]], None],
+        brand_code: str = "T",
+    ) -> None:
         self._auth = auth
         self._status_callback = status_callback
+        self._brand_code = brand_code
         self._session: aiohttp.ClientSession | None = None
         self._ws: aiohttp.ClientWebSocketResponse | None = None
         self._vins: list[str] = []

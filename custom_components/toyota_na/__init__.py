@@ -52,8 +52,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.config_entries.async_update_entry(entry, data=data)
 
     region = entry.data.get("region", "na")
+    brand = entry.data.get("brand", "toyota")
     provider: ToyotaRegionProvider = create_toyota_provider(
         region=region,
+        brand=brand,
         token_callback=token_callback,
         initial_tokens=entry.data.get("tokens"),
     )

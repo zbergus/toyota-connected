@@ -56,16 +56,19 @@ class SsoAccountError(LoginError):
 
 
 class ToyotaAuth:
-    """Manages ForgeRock OpenAM authentication and OAuth2 PKCE tokens for Toyota NA/Canada."""
+    """Manages ForgeRock OpenAM authentication and OAuth2 PKCE tokens for Toyota, Lexus, and Subaru."""
 
     def __init__(
         self,
         token_callback: Callable[[dict[str, Any]], None] | None = None,
         initial_tokens: dict[str, Any] | None = None,
         refresh_buffer_secs: int = 300,
+        auth_host: str = "login.toyotadriverslogin.com",
     ) -> None:
         self._token_callback = token_callback
         self._refresh_buffer_secs = refresh_buffer_secs
+        self.auth_host = auth_host
+        self._set_auth_urls(auth_host)
 
         self._access_token: str | None = None
         self._refresh_token: str | None = None
@@ -81,6 +84,12 @@ class ToyotaAuth:
 
         if initial_tokens:
             self.set_tokens(initial_tokens)
+
+    def _set_auth_urls(self, host: str) -> None:
+        self.auth_host = host
+        self.authenticate_url = f"https://{host}/json/realms/root/realms/tmna-native/authenticate"
+        self.authorize_url = f"https://{host}/oauth2/realms/root/realms/tmna-native/authorize"
+        self.access_token_url = f"https://{host}/oauth2/realms/root/realms/tmna-native/access_token"
 
     @property
     def device_id(self) -> str:
@@ -101,6 +110,7 @@ class ToyotaAuth:
             "updated_at": self._updated_at,
             "device_id": self._device_id,
             "clock": "unix",
+            "auth_host": self.auth_host,
         }
 
     def set_tokens(self, tokens: dict[str, Any]) -> None:
@@ -110,6 +120,8 @@ class ToyotaAuth:
         self._id_token = tokens.get("id_token")
         self._guid = tokens.get("guid")
         self._device_id = tokens.get("device_id") or self._device_id
+        if tokens.get("auth_host"):
+            self._set_auth_urls(tokens["auth_host"])
 
         if tokens.get("clock") == "unix" and tokens.get("expires_at"):
             self._expires_at = float(tokens["expires_at"])
@@ -210,7 +222,7 @@ class ToyotaAuth:
         }
 
         async with aiohttp.ClientSession(timeout=HTTP_TIMEOUT) as session:
-            async with session.post(ACCESS_TOKEN_URL, data=data) as resp:
+            async with session.post(self.access_token_url, data=data) as resp:
                 if resp.status in (400, 401):
                     try:
                         err_json = await resp.json(content_type=None)
@@ -283,7 +295,7 @@ class ToyotaAuth:
                         raise LoginError("Toyota OpenAM repeated an authentication challenge without progression")
                     previous_callbacks = deepcopy(data["callbacks"])
 
-                async with session.post(AUTHENTICATE_URL, json=data, headers=headers) as resp:
+                async with session.post(self.authenticate_url, json=data, headers=headers) as resp:
                     if resp.status != 200:
                         _LOGGER.info("Toyota authentication failed with HTTP %d", resp.status)
                         raise LoginError(f"HTTP {resp.status} during authentication")
@@ -326,7 +338,7 @@ class ToyotaAuth:
                 "Cookie": f"iPlanetDirectoryPro={data['tokenId']}",
                 "Accept-Language": "en-US",
             }
-            auth_url = f"{AUTHORIZE_URL}?{urlencode(auth_params)}"
+            auth_url = f"{self.authorize_url}?{urlencode(auth_params)}"
 
             async with session.get(auth_url, headers=req_headers, allow_redirects=False) as resp:
                 if resp.status not in (301, 302, 303, 307, 308):
@@ -356,7 +368,7 @@ class ToyotaAuth:
         }
 
         async with aiohttp.ClientSession(timeout=HTTP_TIMEOUT) as session:
-            async with session.post(ACCESS_TOKEN_URL, data=data) as resp:
+            async with session.post(self.access_token_url, data=data) as resp:
                 if resp.status != 200:
                     text = await resp.text()
                     raise LoginError(f"Token exchange failed HTTP {resp.status}: {text}")

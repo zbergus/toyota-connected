@@ -36,12 +36,13 @@ class ToyotaBaseEntity(CoordinatorEntity):
     def device_info(self) -> DeviceInfo:
         """Link entity to vehicle device registry entry."""
         v = self.vehicle
-        model = v.model_name if v else "Toyota Vehicle"
+        model = v.model_name if v else "Vehicle"
         year = v.model_year if v else "2024"
+        mfg = v.manufacturer if v else "Toyota"
         return DeviceInfo(
             identifiers={(DOMAIN, self._vin)},
             name=f"{year} {model}",
-            manufacturer="Toyota",
+            manufacturer=mfg,
             model=model,
             serial_number=self._vin,
         )

@@ -9,21 +9,26 @@ from urllib.parse import urljoin
 import aiohttp
 
 from .auth import ToyotaAuth
+from .brands import DEFAULT_BRAND, BrandConfig, get_brand
 from .models import VehicleGeneration, VehicleStatus
 
 _LOGGER = logging.getLogger(__name__)
 
 API_GATEWAY = "https://onecdn.telematicsct.com/oneapi/"
 RESOLVER_API_KEY = "pypIHG015k4ABHWbcI4G0a94F7cC0JDo1OynpAsG"
-USER_AGENT = "ToyotaOneApp/3.10.0 (com.toyota.oneapp; build:3100; Android 14) okhttp/4.12.0"
 HTTP_TIMEOUT = aiohttp.ClientTimeout(total=60, connect=15)
 
 
 class ToyotaRestClient:
-    """Communicates with Toyota OneApp REST API gateway."""
+    """Communicates with Toyota OneApp REST API gateway for Toyota, Lexus, and Subaru."""
 
-    def __init__(self, auth: ToyotaAuth) -> None:
+    def __init__(self, auth: ToyotaAuth, brand: BrandConfig | str = DEFAULT_BRAND) -> None:
         self._auth = auth
+        self._brand = get_brand(brand)
+
+    @property
+    def brand(self) -> BrandConfig:
+        return self._brand
 
     async def _headers(self, vin: str = "", region: str = "CA") -> dict[str, str]:
         token = await self._auth.get_access_token()
@@ -33,13 +38,13 @@ class ToyotaRestClient:
             "X-API-KEY": RESOLVER_API_KEY,
             "X-GUID": guid,
             "X-CHANNEL": "ONEAPP",
-            "X-BRAND": "T",
             "x-region": region,
             "X-APPVERSION": "3.10.0",
             "X-LOCALE": "en-US",
-            "User-Agent": USER_AGENT,
+            "User-Agent": self._brand.user_agent,
             "Accept": "application/json",
         }
+        headers.update(self._brand.headers())
         if vin:
             headers["VIN"] = vin
         return headers
@@ -79,10 +84,19 @@ class ToyotaRestClient:
             return result
         return []
 
+    async def bootstrap_account(self) -> dict[str, Any] | None:
+        """Bootstrap account profile for Subaru accounts if initial vehicle list returns empty."""
+        try:
+            _LOGGER.debug("Bootstrapping account profile via v4/account")
+            return await self.request("GET", "v4/account")
+        except Exception as e:
+            _LOGGER.debug("Account bootstrap call failed: %s", e)
+            return None
+
     async def get_telemetry(self, vin: str, generation: str = "24MM", region: str = "CA") -> dict[str, Any] | None:
         """Fetch vehicle telemetry data."""
         try:
-            extra = {"GENERATION": generation, "X-BRAND": "T"}
+            extra = {"GENERATION": generation, "X-BRAND": self._brand.code}
             return await self.request("GET", "v2/telemetry", vin=vin, region=region, extra_headers=extra)
         except Exception as e:
             _LOGGER.debug("Failed to fetch telemetry for %s: %s", vin, e)
