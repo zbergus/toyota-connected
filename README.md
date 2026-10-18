@@ -20,7 +20,7 @@ Provides both a standalone, asynchronous Python SDK (`toyota-connected`) and a n
   - **Binary Sensors**: Active Charging, Plug Connection, Doors, Windows, Hatch, and Hood.
   - **Controls**:
     - `switch.*_immediate_charge`: Start or stop charging immediately.
-    - `switch.*_climate_preconditioning`: Quick toggle for cabin pre-conditioning.
+    - `switch.*_remote_start`: Quick toggle for remote start / cabin climate.
     - `select.*_target_charge_limit`: Set target battery charging limit (50%, 60%, 70%, 80%, 90%, 100%).
     - `select.*_ac_current_limit`: Set max AC charging current (8 A, 16 A, 32 A, Max).
     - `lock.*_door_lock`: Remote lock and unlock.

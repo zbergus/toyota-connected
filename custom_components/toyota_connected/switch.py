@@ -75,7 +75,7 @@ class ToyotaChargingSwitch(ToyotaBaseEntity, SwitchEntity):
 
 
 class ToyotaClimateSwitch(ToyotaBaseEntity, SwitchEntity):
-    """Switch to toggle remote cabin pre-conditioning."""
+    """Switch to toggle remote start / cabin climate."""
 
     _attr_device_class = SwitchDeviceClass.SWITCH
     _attr_icon = "mdi:air-conditioner"
@@ -86,9 +86,9 @@ class ToyotaClimateSwitch(ToyotaBaseEntity, SwitchEntity):
         provider: ToyotaRegionProvider,
         vin: str,
     ) -> None:
-        super().__init__(coordinator, vin, "climate_preconditioning")
+        super().__init__(coordinator, vin, "remote_start")
         self._provider = provider
-        self._attr_name = "Climate Pre-conditioning"
+        self._attr_name = "Remote Start"
 
     @property
     def is_on(self) -> bool:
@@ -96,12 +96,12 @@ class ToyotaClimateSwitch(ToyotaBaseEntity, SwitchEntity):
         return bool(v.climate_active) if v else False
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        _LOGGER.info("Activating remote climate pre-conditioning for %s", self._vin)
+        _LOGGER.info("Activating remote start for %s", self._vin)
         await self._provider.send_remote_command(self._vin, RemoteCommand.ENGINE_START)
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        _LOGGER.info("Stopping remote climate pre-conditioning for %s", self._vin)
+        _LOGGER.info("Stopping remote start for %s", self._vin)
         await self._provider.send_remote_command(self._vin, RemoteCommand.ENGINE_STOP)
         await self.coordinator.async_request_refresh()
 
