@@ -97,8 +97,8 @@ HEADERS = {
     "X-API-KEY": "pypIHG015k4ABHWbcI4G0a94F7cC0JDo1OynpAsG",  # Resolver API Key
     "X-GUID": guid,
     "X-CHANNEL": "ONEAPP",
-    "X-BRAND": "T",        # "T" for Toyota, "L" for Lexus
-    "x-region": region,    # "CA" for Canada, "US" for USA
+    "X-BRAND": "T",  # "T" for Toyota, "L" for Lexus
+    "x-region": region,  # "CA" for Canada, "US" for USA
     "X-APPVERSION": "3.10.0",
     "User-Agent": "ToyotaOneApp/3.10.0 (com.toyota.oneapp; build:3100; Android 14) okhttp/4.12.0",
 }
