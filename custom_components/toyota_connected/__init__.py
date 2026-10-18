@@ -15,10 +15,13 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-# Ensure src/ is accessible if running from source checkout without prior pip install
+# Ensure src/ or bundled directory is accessible if running without pip install
 _SRC_DIR = Path(__file__).resolve().parent.parent.parent / "src"
 if _SRC_DIR.exists() and str(_SRC_DIR) not in sys.path:
     sys.path.insert(0, str(_SRC_DIR))
+_LOCAL_DIR = Path(__file__).resolve().parent
+if _LOCAL_DIR.exists() and str(_LOCAL_DIR) not in sys.path:
+    sys.path.insert(0, str(_LOCAL_DIR))
 
 from toyota_connected import (  # noqa: E402
     RemoteCommand,

@@ -19,6 +19,7 @@ from .graphql import (
     REFRESH_STATUS_MUTATION,
     SEND_REMOTE_COMMAND_MUTATION,
     ToyotaAppSyncWebSocket,
+    VehicleNotFoundOnAppSync,
     execute_graphql,
     parse_appsync_vehicle_status,
 )
@@ -27,7 +28,12 @@ from .models import (
     VehicleGeneration,
     VehicleStatus,
 )
-from .rest import ToyotaRestClient
+from .rest import (
+    ToyotaRestClient,
+    parse_rest_electric_status,
+    parse_rest_telemetry,
+    parse_rest_vehicle_status,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -126,13 +132,10 @@ class NorthAmericaProvider(ToyotaRegionProvider):
         return vehicles
 
     async def update_vehicle_status(self, vehicle: VehicleStatus) -> VehicleStatus:
-        # For 24MM (bZ4X/Solterra) or 21MM, AppSync query returns complete telemetry & state
-        if vehicle.generation in (
-            VehicleGeneration.MM25,
-            VehicleGeneration.MM24,
-            VehicleGeneration.MM21,
-            VehicleGeneration.CY17PLUS,
-        ):
+        # AppSync GraphQL is used for MM24 and MM25 vehicles that support Stencil.
+        # For 21MM and earlier generations, OneAPI REST is the native provider.
+        uses_appsync = vehicle.generation in (VehicleGeneration.MM25, VehicleGeneration.MM24)
+        if uses_appsync:
             try:
                 result = await execute_graphql(
                     self.auth,
@@ -146,22 +149,47 @@ class NorthAmericaProvider(ToyotaRegionProvider):
                 )
                 if result:
                     parse_appsync_vehicle_status(result, vehicle)
+            except VehicleNotFoundOnAppSync:
+                _LOGGER.debug(
+                    "Vehicle %s not on AppSync Stencil, switching to REST OneAPI", vehicle.vin
+                )
+                uses_appsync = False
             except (aiohttp.ClientError, RuntimeError, KeyError, ValueError, TypeError) as e:
                 _LOGGER.debug("AppSync GetVehicleStatus query failed for %s: %s", vehicle.vin, e)
+                uses_appsync = False
 
-        # Telemetry enrichment
+        if not uses_appsync:
+            # 1. Fetch remote vehicle status (doors, windows, locks, hood, hatch)
+            try:
+                status_res = await self.rest.get_vehicle_status(
+                    vehicle.vin, region=vehicle.region
+                )
+                if status_res:
+                    parse_rest_vehicle_status(status_res, vehicle)
+            except Exception as e:
+                _LOGGER.debug("REST vehicle status failed for %s: %s", vehicle.vin, e)
+
+            # 2. Fetch EV electric status (battery SoC, range, charge status, plug)
+            if vehicle.is_electric:
+                try:
+                    elec_res = await self.rest.get_electric_status(
+                        vehicle.vin,
+                        region=vehicle.region,
+                        generation=vehicle.generation.value,
+                    )
+                    if elec_res:
+                        parse_rest_electric_status(elec_res, vehicle)
+                except Exception as e:
+                    _LOGGER.debug("REST electric status failed for %s: %s", vehicle.vin, e)
+
+        # Telemetry enrichment (odometer, tire pressures, GPS location)
         try:
             telemetry = await self.rest.get_telemetry(
                 vehicle.vin, vehicle.generation.value, vehicle.region
             )
             if telemetry:
-                if vehicle.odometer_km is None and telemetry.get("odometer") is not None:
-                    vehicle.odometer_km = float(telemetry["odometer"])
-                if vehicle.fuel_level_percent is None and telemetry.get("fuelLevel") is not None:
-                    vehicle.fuel_level_percent = float(telemetry["fuelLevel"])
-                if vehicle.fuel_range_km is None and telemetry.get("distanceToEmpty") is not None:
-                    vehicle.fuel_range_km = float(telemetry["distanceToEmpty"])
-        except (aiohttp.ClientError, KeyError, ValueError, TypeError) as e:
+                parse_rest_telemetry(telemetry, vehicle)
+        except Exception as e:
             _LOGGER.debug("Telemetry fetch failed: %s", e)
 
         return vehicle
@@ -170,20 +198,26 @@ class NorthAmericaProvider(ToyotaRegionProvider):
         self, vin: str, command: RemoteCommand, region: str | None = None
     ) -> dict[str, Any]:
         target_region = region or self._vin_regions.get(vin, "CA")
-        variables: dict[str, Any] = {
-            "command": command.value,
-            "autoFixCommands": [],
-        }
-        return await execute_graphql(
-            self.auth,
-            SEND_REMOTE_COMMAND_MUTATION,
-            variables,
-            vin=vin,
-            region=target_region,
-            brand_code=self.brand.code,
-            user_agent=self.brand.user_agent,
-            session=self._session,
-        )
+        try:
+            variables: dict[str, Any] = {
+                "command": command.value,
+                "autoFixCommands": [],
+            }
+            return await execute_graphql(
+                self.auth,
+                SEND_REMOTE_COMMAND_MUTATION,
+                variables,
+                vin=vin,
+                region=target_region,
+                brand_code=self.brand.code,
+                user_agent=self.brand.user_agent,
+                session=self._session,
+            )
+        except (VehicleNotFoundOnAppSync, RuntimeError) as e:
+            _LOGGER.debug("AppSync remote command failed, falling back to REST: %s", e)
+            return await self.rest.send_remote_command(
+                vin, command.value, region=target_region, generation="21MM"
+            )
 
     async def set_charge_limit(
         self, vin: str, target_percent: int, region: str | None = None

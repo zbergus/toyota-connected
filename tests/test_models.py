@@ -103,6 +103,91 @@ class TestVehicleTelemetryParsing(unittest.TestCase):
         # Verify electric telemetry is cleanly None for ICE/Hybrid
         self.assertIsNone(updated.electric)
 
+    def test_parse_rest_status_electric_telemetry(self) -> None:
+        """Verify REST parsing for 21MM / legacy vehicles."""
+        from toyota_connected.rest import (
+            parse_rest_electric_status,
+            parse_rest_telemetry,
+            parse_rest_vehicle_status,
+        )
+
+        # 1. Test REST vehicle status
+        mock_remote_status = {
+            "payload": {
+                "vehicleStatus": [
+                    {
+                        "category": "Driver Side",
+                        "sections": [
+                            {"section": "Door", "values": [{"value": "Closed"}, {"value": "Locked"}]},
+                            {"section": "Window", "values": [{"value": "Closed"}]},
+                        ],
+                    },
+                    {
+                        "category": "Other",
+                        "sections": [
+                            {"section": "Hatch", "values": [{"value": "Closed"}, {"value": "Locked"}]},
+                            {"section": "Hood", "values": [{"value": "Closed"}]},
+                        ],
+                    },
+                ],
+                "telemetry": {"odo": {"value": 37758.0, "unit": "Km"}},
+                "latitude": 45.4215,
+                "longitude": -75.6972,
+            }
+        }
+        parse_rest_vehicle_status(mock_remote_status, self.ev_vehicle)
+        self.assertTrue(self.ev_vehicle.driver_door.closed)
+        self.assertTrue(self.ev_vehicle.driver_door.locked)
+        self.assertTrue(self.ev_vehicle.driver_window_closed)
+        self.assertTrue(self.ev_vehicle.hatch.closed)
+        self.assertEqual(self.ev_vehicle.odometer_km, 37758.0)
+        self.assertEqual(self.ev_vehicle.last_parked_latitude, 45.4215)
+
+        # 2. Test REST electric status
+        mock_electric_status = {
+            "payload": {
+                "vehicleInfo": {
+                    "chargeInfo": {
+                        "chargeRemainingAmount": 71,
+                        "evDistance": 259.9,
+                        "evDistanceAC": 231.3,
+                        "evDistanceUnit": "km",
+                        "plugStatus": 12,
+                        "remainingChargeTime": 65535,
+                    },
+                    "remoteHvacInfo": {
+                        "settingTemperature": 21.0,
+                        "remoteHvacMode": 0,
+                        "blowerStatus": 0,
+                    },
+                }
+            }
+        }
+        parse_rest_electric_status(mock_electric_status, self.ev_vehicle)
+        self.assertIsNotNone(self.ev_vehicle.electric)
+        self.assertEqual(self.ev_vehicle.electric.battery_level, 71.0)
+        self.assertEqual(self.ev_vehicle.electric.range_km, 259.9)
+        self.assertEqual(self.ev_vehicle.electric.range_ac_on_km, 231.3)
+        self.assertFalse(self.ev_vehicle.electric.plug_connected)
+        self.assertEqual(self.ev_vehicle.electric.charging_status, ChargingStatus.STOPPED)
+        self.assertIsNone(self.ev_vehicle.electric.time_to_full_minutes)
+        self.assertEqual(self.ev_vehicle.climate_target_temp_c, 21.0)
+
+        # 3. Test REST telemetry with dict odometer and tire pressures
+        mock_telemetry = {
+            "payload": {
+                "odometer": {"value": 37758, "unit": "km"},
+                "flTirePressure": {"value": 38, "unit": "psi"},
+                "frTirePressure": {"value": 38, "unit": "psi"},
+                "rlTirePressure": {"value": 38, "unit": "psi"},
+                "rrTirePressure": {"value": 38, "unit": "psi"},
+            }
+        }
+        parse_rest_telemetry(mock_telemetry, self.ev_vehicle)
+        self.assertEqual(self.ev_vehicle.odometer_km, 37758.0)
+        self.assertEqual(self.ev_vehicle.tire_front_left.psi, 38.0)
+        self.assertEqual(self.ev_vehicle.tire_rear_right.psi, 38.0)
+
 
 if __name__ == "__main__":
     unittest.main()

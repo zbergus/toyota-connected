@@ -33,6 +33,10 @@ RESOLVER_API_KEY = os.getenv("TOYOTA_RESOLVER_API_KEY", "pypIHG015k4ABHWbcI4G0a9
 USER_AGENT = "ToyotaOneApp/3.10.0 (com.toyota.oneapp; build:3100; Android 14) okhttp/4.12.0"
 HTTP_TIMEOUT = aiohttp.ClientTimeout(total=60, connect=15)
 
+class VehicleNotFoundOnAppSync(RuntimeError):
+    """Raised when vehicle is not registered on AppSync GraphQL (e.g. 21MM or non-Stencil vehicles)."""
+
+
 __all__ = [
     "APPSYNC_API_KEY",
     "CONFIRM_SUBSCRIPTION_MUTATION",
@@ -49,6 +53,7 @@ __all__ = [
     "RESOLVER_API_KEY",
     "SEND_REMOTE_COMMAND_MUTATION",
     "ToyotaAppSyncWebSocket",
+    "VehicleNotFoundOnAppSync",
     "execute_graphql",
     "parse_appsync_vehicle_status",
 ]
@@ -428,8 +433,22 @@ async def execute_graphql(
 
     if result.get("errors"):
         err = result["errors"][0]
-        _LOGGER.error("GraphQL error: %s: %s", err.get("errorType"), err.get("message"))
-        raise RuntimeError(f"GraphQL error: {err.get('message')}")
+        err_msg = str(err.get("message", ""))
+        err_type = str(err.get("errorType", ""))
+        if (
+            "STENCIL-VEHICLE-001" in err_type
+            or "STENCIL-VEHICLE-001" in err_msg
+            or "vehicle not found" in err_msg.lower()
+        ):
+            _LOGGER.debug(
+                "AppSync Stencil vehicle not found for %s (legacy or 21MM vehicle): %s",
+                vin,
+                err_msg,
+            )
+            raise VehicleNotFoundOnAppSync(f"AppSync vehicle not found: {err_msg}")
+
+        _LOGGER.error("GraphQL error: %s: %s", err_type, err_msg)
+        raise RuntimeError(f"GraphQL error: {err_msg}")
 
     return result.get("data") or {}
 

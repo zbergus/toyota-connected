@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import sys
+from pathlib import Path
 from typing import Any
 
 import voluptuous as vol
@@ -10,10 +12,18 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from toyota_connected import ToyotaRegionProvider, create_toyota_provider, get_brand
-from toyota_connected.auth import AuthError, LoginError
+# Ensure src/ or bundled directory is accessible if running without pip install
+_SRC_DIR = Path(__file__).resolve().parent.parent.parent / "src"
+if _SRC_DIR.exists() and str(_SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(_SRC_DIR))
+_LOCAL_DIR = Path(__file__).resolve().parent
+if _LOCAL_DIR.exists() and str(_LOCAL_DIR) not in sys.path:
+    sys.path.insert(0, str(_LOCAL_DIR))
 
-from .const import DOMAIN
+from toyota_connected import ToyotaRegionProvider, create_toyota_provider, get_brand  # noqa: E402
+from toyota_connected.auth import AuthError, LoginError  # noqa: E402
+
+from .const import DOMAIN  # noqa: E402
 
 _LOGGER = logging.getLogger(__name__)
 
