@@ -1,0 +1,106 @@
+door_lock:
+  name: Door Lock
+  description: Remotely locks the vehicle doors.
+  fields:
+    vin:
+      name: VIN
+      description: The vehicle identification number.
+      required: false
+      example: "JF2EAAA12P8123456"
+      selector:
+        text:
+
+door_unlock:
+  name: Door Unlock
+  description: Remotely unlocks the vehicle doors.
+  fields:
+    vin:
+      name: VIN
+      description: The vehicle identification number.
+      required: false
+      example: "JF2EAAA12P8123456"
+      selector:
+        text:
+
+start_charge:
+  name: Start Immediate Charge
+  description: Initiates EV/PHEV battery charging immediately.
+  fields:
+    vin:
+      name: VIN
+      description: The vehicle identification number.
+      required: false
+      example: "JF2EAAA12P8123456"
+      selector:
+        text:
+
+stop_charge:
+  name: Stop Charge
+  description: Stops ongoing EV/PHEV battery charging.
+  fields:
+    vin:
+      name: VIN
+      description: The vehicle identification number.
+      required: false
+      example: "JF2EAAA12P8123456"
+      selector:
+        text:
+
+climate_start:
+  name: Start Climate Pre-conditioning
+  description: Starts cabin climate control / engine remote start.
+  fields:
+    vin:
+      name: VIN
+      description: The vehicle identification number.
+      required: false
+      example: "JF2EAAA12P8123456"
+      selector:
+        text:
+
+climate_stop:
+  name: Stop Climate Pre-conditioning
+  description: Stops cabin climate control.
+  fields:
+    vin:
+      name: VIN
+      description: The vehicle identification number.
+      required: false
+      example: "JF2EAAA12P8123456"
+      selector:
+        text:
+
+set_charge_limit:
+  name: Set Target Charge Limit
+  description: Sets the target battery charge percentage limit (50% to 100%).
+  fields:
+    vin:
+      name: VIN
+      description: The vehicle identification number.
+      required: false
+      example: "JF2EAAA12P8123456"
+      selector:
+        text:
+    limit:
+      name: Target Limit Percentage
+      description: Target battery percentage (e.g. 80).
+      required: true
+      default: 80
+      selector:
+        number:
+          min: 50
+          max: 100
+          step: 10
+          unit_of_measurement: "%"
+
+refresh:
+  name: Request Status Refresh
+  description: Triggers an active cloud synchronization subject to 12V auxiliary battery protection.
+  fields:
+    vin:
+      name: VIN
+      description: The vehicle identification number.
+      required: false
+      example: "JF2EAAA12P8123456"
+      selector:
+        text:

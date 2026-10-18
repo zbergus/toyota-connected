@@ -25,6 +25,9 @@ jobs:
       - name: Set up Python
         run: uv python install 3.12
 
+      - name: Install Dependencies
+        run: uv sync --extra dev
+
       - name: Ruff Lint Check
         run: uv run ruff check .
 
@@ -44,6 +47,9 @@ jobs:
 
       - name: Set up Python
         run: uv python install 3.12
+
+      - name: Install Dependencies
+        run: uv sync --extra dev
 
       - name: Run Mypy
         run: uv run mypy src custom_components
@@ -66,6 +72,9 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
 
+      - name: Install Dependencies
+        run: uv sync --python ${{ matrix.python-version }} --extra dev
+
       - name: Run Pytest & Contract Verification
         run: uv run --python ${{ matrix.python-version }} pytest -v
 
@@ -85,7 +94,7 @@ jobs:
 
       - name: Byte-compile Python components (Zero Syntax Errors)
         run: |
-          uv run python -m compileall src custom_components tests
+          python3 -m compileall src custom_components tests
 
       - name: Build Python Distribution Packages (Wheel & SDist)
         run: uv build
