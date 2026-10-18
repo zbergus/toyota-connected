@@ -1,4 +1,4 @@
-"""Modern Config Flow for Toyota Connected Services."""
+"""Region-agnostic Config Flow for Toyota Connected Services."""
 
 from __future__ import annotations
 
@@ -9,10 +9,16 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 import voluptuous as vol
 
-from .client.auth import AuthError, LoginError, ToyotaAuth
+from .client import ToyotaRegionProvider, create_toyota_provider
+from .client.auth import AuthError, LoginError
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
+
+REGION_CHOICES = {
+    "na": "North America (Canada, USA, Mexico)",
+    "eu": "Europe (EU, UK)",
+}
 
 
 class ToyotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -21,29 +27,45 @@ class ToyotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     def __init__(self) -> None:
-        self._auth = ToyotaAuth()
+        self._region: str = "na"
+        self._provider: ToyotaRegionProvider | None = None
         self._username: str | None = None
         self._password: str | None = None
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Step 1: Enter email and password."""
+        """Step 1: Choose geographic region."""
+        if user_input is not None:
+            self._region = user_input["region"]
+            self._provider = create_toyota_provider(self._region)
+            return await self.async_step_credentials()
+
+        schema = vol.Schema(
+            {
+                vol.Required("region", default="na"): vol.In(REGION_CHOICES),
+            }
+        )
+        return self.async_show_form(step_id="user", data_schema=schema)
+
+    async def async_step_credentials(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Step 2: Enter email and password."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
             self._username = user_input["username"].strip()
             self._password = user_input["password"]
 
+            if not self._provider:
+                self._provider = create_toyota_provider(self._region)
+
             try:
-                result = await self._auth.authorize(self._username, self._password)
+                result = await self._provider.login(self._username, self._password)
                 if isinstance(result, str):
-                    # Direct login succeeded without OTP
-                    await self._auth.request_tokens(result)
-                    return await self._create_entry_from_auth()
+                    await self._provider.request_tokens(result)
+                    return await self._create_entry_from_provider()
                 else:
-                    # OTP required
                     return await self.async_step_otp()
             except LoginError as err:
-                _LOGGER.warning("Toyota login error: %s", err)
+                _LOGGER.warning("Toyota login rejected: %s", err)
                 errors["base"] = "invalid_auth"
             except AuthError as err:
                 _LOGGER.error("Toyota authentication error: %s", err)
@@ -58,19 +80,22 @@ class ToyotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required("password"): str,
             }
         )
-        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+        return self.async_show_form(step_id="credentials", data_schema=schema, errors=errors)
 
     async def async_step_otp(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Step 2: Enter One-Time Password (OTP) verification code."""
+        """Step 3: Enter One-Time Password (OTP) verification code (if prompted by NA OpenAM)."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
             otp_code = user_input["code"].strip()
+            if not self._provider:
+                self._provider = create_toyota_provider(self._region)
+
             try:
-                result = await self._auth.authorize(self._username or "", self._password, otp=otp_code)
+                result = await self._provider.login(self._username or "", self._password, otp=otp_code)
                 if isinstance(result, str):
-                    await self._auth.request_tokens(result)
-                    return await self._create_entry_from_auth()
+                    await self._provider.request_tokens(result)
+                    return await self._create_entry_from_provider()
                 errors["base"] = "invalid_otp"
             except LoginError as err:
                 _LOGGER.warning("Toyota OTP verification failed: %s", err)
@@ -82,13 +107,16 @@ class ToyotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema({vol.Required("code"): str})
         return self.async_show_form(step_id="otp", data_schema=schema, errors=errors)
 
-    async def _create_entry_from_auth(self) -> FlowResult:
-        guid = await self._auth.get_guid()
-        await self.async_set_unique_id(f"{DOMAIN}:{guid}")
+    async def _create_entry_from_provider(self) -> FlowResult:
+        tokens = self._provider.get_tokens() if self._provider else {}
+        guid = tokens.get("guid") or self._username
+
+        await self.async_set_unique_id(f"{DOMAIN}:{self._region}:{guid}")
         self._abort_if_unique_id_configured()
 
         entry_data = {
-            "tokens": self._auth.get_tokens(),
+            "region": self._region,
+            "tokens": tokens,
             "username": self._username,
             "guid": guid,
         }
@@ -96,12 +124,15 @@ class ToyotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Clear plaintext password from memory
         self._password = None
 
+        region_label = "North America" if self._region == "na" else "Europe"
         return self.async_create_entry(
-            title=f"Toyota ({self._username})",
+            title=f"Toyota {region_label} ({self._username})",
             data=entry_data,
         )
 
     async def async_step_reauth(self, entry_data: dict[str, Any]) -> FlowResult:
         """Handle reauthorization if refresh tokens expire."""
+        self._region = entry_data.get("region", "na")
         self._username = entry_data.get("username")
-        return await self.async_step_user()
+        self._provider = create_toyota_provider(self._region)
+        return await self.async_step_credentials()

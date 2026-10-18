@@ -12,7 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .base_entity import ToyotaBaseEntity
-from .client import ToyotaClient
+from .client import ToyotaRegionProvider
 from .client.models import ChargingStatus, RemoteCommand, VehicleStatus
 from .const import DOMAIN
 
@@ -26,15 +26,15 @@ async def async_setup_entry(
 ) -> None:
     """Set up Toyota switch entities from a config entry."""
     entry_data = hass.data[DOMAIN][entry.entry_id]
-    client: ToyotaClient = entry_data["client"]
+    provider: ToyotaRegionProvider = entry_data["provider"]
     coordinator: DataUpdateCoordinator[dict[str, VehicleStatus]] = entry_data["coordinator"]
 
     entities: list[SwitchEntity] = []
     for vin, vehicle in (coordinator.data or {}).items():
         if vehicle.is_electric:
-            entities.append(ToyotaChargingSwitch(coordinator, client, vin))
-        entities.append(ToyotaClimateSwitch(coordinator, client, vin))
-        entities.append(ToyotaHazardSwitch(coordinator, client, vin))
+            entities.append(ToyotaChargingSwitch(coordinator, provider, vin))
+        entities.append(ToyotaClimateSwitch(coordinator, provider, vin))
+        entities.append(ToyotaHazardSwitch(coordinator, provider, vin))
 
     async_add_entities(entities)
 
@@ -48,11 +48,11 @@ class ToyotaChargingSwitch(ToyotaBaseEntity, SwitchEntity):
     def __init__(
         self,
         coordinator: DataUpdateCoordinator[dict[str, VehicleStatus]],
-        client: ToyotaClient,
+        provider: ToyotaRegionProvider,
         vin: str,
     ) -> None:
         super().__init__(coordinator, vin, "immediate_charge")
-        self._client = client
+        self._provider = provider
         self._attr_name = "Immediate Charging"
 
     @property
@@ -61,17 +61,13 @@ class ToyotaChargingSwitch(ToyotaBaseEntity, SwitchEntity):
         return (v.electric.charging_status == ChargingStatus.CHARGING) if (v and v.electric) else False
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        v = self.vehicle
-        reg = v.region if v else "CA"
         _LOGGER.info("Sending immediate charging start command for %s", self._vin)
-        await self._client.send_remote_command(self._vin, RemoteCommand.IMMEDIATE_CHARGE, region=reg)
+        await self._provider.send_remote_command(self._vin, RemoteCommand.IMMEDIATE_CHARGE)
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        v = self.vehicle
-        reg = v.region if v else "CA"
         _LOGGER.info("Sending charge stop command for %s", self._vin)
-        await self._client.send_remote_command(self._vin, RemoteCommand.CHARGE_STOP, region=reg)
+        await self._provider.send_remote_command(self._vin, RemoteCommand.CHARGE_STOP)
         await self.coordinator.async_request_refresh()
 
 
@@ -84,11 +80,11 @@ class ToyotaClimateSwitch(ToyotaBaseEntity, SwitchEntity):
     def __init__(
         self,
         coordinator: DataUpdateCoordinator[dict[str, VehicleStatus]],
-        client: ToyotaClient,
+        provider: ToyotaRegionProvider,
         vin: str,
     ) -> None:
         super().__init__(coordinator, vin, "climate_preconditioning")
-        self._client = client
+        self._provider = provider
         self._attr_name = "Climate Pre-conditioning"
 
     @property
@@ -97,17 +93,13 @@ class ToyotaClimateSwitch(ToyotaBaseEntity, SwitchEntity):
         return bool(v.climate_active) if v else False
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        v = self.vehicle
-        reg = v.region if v else "CA"
         _LOGGER.info("Activating remote climate pre-conditioning for %s", self._vin)
-        await self._client.send_remote_command(self._vin, RemoteCommand.ENGINE_START, region=reg)
+        await self._provider.send_remote_command(self._vin, RemoteCommand.ENGINE_START)
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        v = self.vehicle
-        reg = v.region if v else "CA"
         _LOGGER.info("Stopping remote climate pre-conditioning for %s", self._vin)
-        await self._client.send_remote_command(self._vin, RemoteCommand.ENGINE_STOP, region=reg)
+        await self._provider.send_remote_command(self._vin, RemoteCommand.ENGINE_STOP)
         await self.coordinator.async_request_refresh()
 
 
@@ -120,11 +112,11 @@ class ToyotaHazardSwitch(ToyotaBaseEntity, SwitchEntity):
     def __init__(
         self,
         coordinator: DataUpdateCoordinator[dict[str, VehicleStatus]],
-        client: ToyotaClient,
+        provider: ToyotaRegionProvider,
         vin: str,
     ) -> None:
         super().__init__(coordinator, vin, "hazard_lights")
-        self._client = client
+        self._provider = provider
         self._attr_name = "Hazard Lights"
         self._is_active = False
 
@@ -133,15 +125,11 @@ class ToyotaHazardSwitch(ToyotaBaseEntity, SwitchEntity):
         return self._is_active
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        v = self.vehicle
-        reg = v.region if v else "CA"
         self._is_active = True
         self.async_write_ha_state()
-        await self._client.send_remote_command(self._vin, RemoteCommand.HAZARD_ON, region=reg)
+        await self._provider.send_remote_command(self._vin, RemoteCommand.HAZARD_ON)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        v = self.vehicle
-        reg = v.region if v else "CA"
         self._is_active = False
         self.async_write_ha_state()
-        await self._client.send_remote_command(self._vin, RemoteCommand.HAZARD_OFF, region=reg)
+        await self._provider.send_remote_command(self._vin, RemoteCommand.HAZARD_OFF)

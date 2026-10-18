@@ -11,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .base_entity import ToyotaBaseEntity
-from .client import ToyotaClient
+from .client import ToyotaRegionProvider
 from .client.models import VehicleStatus
 from .const import DOMAIN
 
@@ -28,14 +28,14 @@ async def async_setup_entry(
 ) -> None:
     """Set up Toyota select entities from a config entry."""
     entry_data = hass.data[DOMAIN][entry.entry_id]
-    client: ToyotaClient = entry_data["client"]
+    provider: ToyotaRegionProvider = entry_data["provider"]
     coordinator: DataUpdateCoordinator[dict[str, VehicleStatus]] = entry_data["coordinator"]
 
     entities: list[SelectEntity] = []
     for vin, vehicle in (coordinator.data or {}).items():
         if vehicle.is_electric:
-            entities.append(ToyotaTargetChargeLimitSelect(coordinator, client, vin))
-            entities.append(ToyotaACCurrentLimitSelect(coordinator, client, vin))
+            entities.append(ToyotaTargetChargeLimitSelect(coordinator, provider, vin))
+            entities.append(ToyotaACCurrentLimitSelect(coordinator, provider, vin))
 
     async_add_entities(entities)
 
@@ -49,11 +49,11 @@ class ToyotaTargetChargeLimitSelect(ToyotaBaseEntity, SelectEntity):
     def __init__(
         self,
         coordinator: DataUpdateCoordinator[dict[str, VehicleStatus]],
-        client: ToyotaClient,
+        provider: ToyotaRegionProvider,
         vin: str,
     ) -> None:
         super().__init__(coordinator, vin, "target_charge_limit")
-        self._client = client
+        self._provider = provider
         self._attr_name = "Target Charge Limit"
 
     @property
@@ -65,10 +65,8 @@ class ToyotaTargetChargeLimitSelect(ToyotaBaseEntity, SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         percent = int(option.replace("%", "").strip())
-        v = self.vehicle
-        reg = v.region if v else "CA"
         _LOGGER.info("Setting target charge limit for %s to %d%%", self._vin, percent)
-        await self._client.set_charge_limit(self._vin, percent, region=reg)
+        await self._provider.set_charge_limit(self._vin, percent)
         await self.coordinator.async_request_refresh()
 
 
@@ -81,11 +79,11 @@ class ToyotaACCurrentLimitSelect(ToyotaBaseEntity, SelectEntity):
     def __init__(
         self,
         coordinator: DataUpdateCoordinator[dict[str, VehicleStatus]],
-        client: ToyotaClient,
+        provider: ToyotaRegionProvider,
         vin: str,
     ) -> None:
         super().__init__(coordinator, vin, "ac_current_limit")
-        self._client = client
+        self._provider = provider
         self._attr_name = "AC Charging Current Limit"
 
     @property
@@ -98,8 +96,6 @@ class ToyotaACCurrentLimitSelect(ToyotaBaseEntity, SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         amps = 127 if option == "Max" else int(option.replace("A", "").strip())
-        v = self.vehicle
-        reg = v.region if v else "CA"
         _LOGGER.info("Setting max AC current limit for %s to %s", self._vin, option)
-        await self._client.set_ac_current_limit(self._vin, amps, region=reg)
+        await self._provider.set_ac_current_limit(self._vin, amps)
         await self.coordinator.async_request_refresh()

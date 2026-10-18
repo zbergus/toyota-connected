@@ -17,7 +17,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .base_entity import ToyotaBaseEntity
-from .client import ToyotaClient
+from .client import ToyotaRegionProvider
 from .client.models import RemoteCommand, VehicleStatus
 from .const import DOMAIN
 
@@ -31,13 +31,13 @@ async def async_setup_entry(
 ) -> None:
     """Set up Toyota climate entities from a config entry."""
     entry_data = hass.data[DOMAIN][entry.entry_id]
-    client: ToyotaClient = entry_data["client"]
+    provider: ToyotaRegionProvider = entry_data["provider"]
     coordinator: DataUpdateCoordinator[dict[str, VehicleStatus]] = entry_data["coordinator"]
 
     entities: list[ClimateEntity] = []
     for vin, vehicle in (coordinator.data or {}).items():
         if vehicle.subscribed:
-            entities.append(ToyotaClimate(coordinator, client, vin))
+            entities.append(ToyotaClimate(coordinator, provider, vin))
 
     async_add_entities(entities)
 
@@ -55,11 +55,11 @@ class ToyotaClimate(ToyotaBaseEntity, ClimateEntity):
     def __init__(
         self,
         coordinator: DataUpdateCoordinator[dict[str, VehicleStatus]],
-        client: ToyotaClient,
+        provider: ToyotaRegionProvider,
         vin: str,
     ) -> None:
         super().__init__(coordinator, vin, "climate")
-        self._client = client
+        self._provider = provider
         self._attr_name = "Climate"
         self._target_temp: float = 21.0
 
@@ -79,12 +79,10 @@ class ToyotaClimate(ToyotaBaseEntity, ClimateEntity):
             self.async_write_ha_state()
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
-        v = self.vehicle
-        reg = v.region if v else "CA"
         if hvac_mode == HVACMode.HEAT_COOL:
             _LOGGER.info("Starting climate pre-conditioning for %s", self._vin)
-            await self._client.send_remote_command(self._vin, RemoteCommand.ENGINE_START, region=reg)
+            await self._provider.send_remote_command(self._vin, RemoteCommand.ENGINE_START)
         else:
             _LOGGER.info("Stopping climate pre-conditioning for %s", self._vin)
-            await self._client.send_remote_command(self._vin, RemoteCommand.ENGINE_STOP, region=reg)
+            await self._provider.send_remote_command(self._vin, RemoteCommand.ENGINE_STOP)
         await self.coordinator.async_request_refresh()

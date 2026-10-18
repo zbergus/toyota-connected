@@ -1,4 +1,4 @@
-"""Toyota Connected Services Home Assistant Integration."""
+"""Toyota Connected Services Home Assistant Integration (Region Agnostic)."""
 
 from __future__ import annotations
 
@@ -10,12 +10,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .client import ToyotaClient
-from .client.auth import AuthError, ToyotaAuth
-from .client.graphql import ToyotaAppSyncWebSocket, parse_appsync_vehicle_status
+from .client import ToyotaRegionProvider, create_toyota_provider
+from .client.auth import AuthError
+from .client.graphql import parse_appsync_vehicle_status
 from .client.models import RemoteCommand, VehicleStatus
 from .const import (
     DOMAIN,
@@ -52,25 +51,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         data["tokens"] = tokens
         hass.config_entries.async_update_entry(entry, data=data)
 
-    auth = ToyotaAuth(
+    region = entry.data.get("region", "na")
+    provider: ToyotaRegionProvider = create_toyota_provider(
+        region=region,
         token_callback=token_callback,
         initial_tokens=entry.data.get("tokens"),
     )
 
     try:
-        await auth.check_tokens()
+        await provider.check_tokens()
     except AuthError as err:
-        _LOGGER.warning("Token check failed, reauth required: %s", err)
+        _LOGGER.warning("Token validation failed, reauth required: %s", err)
         raise ConfigEntryAuthFailed(err) from err
-
-    client = ToyotaClient(auth)
 
     async def async_update_data() -> dict[str, VehicleStatus]:
         try:
-            vehicles = await client.get_user_vehicles()
+            vehicles = await provider.get_user_vehicles()
             vehicle_map: dict[str, VehicleStatus] = {}
             for v in vehicles:
-                await client.update_vehicle_status(v)
+                await provider.update_vehicle_status(v)
                 vehicle_map[v.vin] = v
             return vehicle_map
         except AuthError as err:
@@ -89,27 +88,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await coordinator.async_config_entry_first_refresh()
 
-    # WebSocket Realtime Event Handler for push updates (doors, charging, battery)
-    def ws_status_callback(vin: str, raw_payload: dict[str, Any]) -> None:
+    # Realtime push events listener (AppSync WebSockets for NA)
+    def realtime_status_callback(vin: str, raw_payload: dict[str, Any]) -> None:
         current_data = coordinator.data or {}
         if vin in current_data:
             vehicle = current_data[vin]
             parse_appsync_vehicle_status(raw_payload, vehicle)
             coordinator.async_set_updated_data(dict(current_data))
-            _LOGGER.debug("Realtime WebSocket push updated state for VIN ...%s", vin[-4:])
+            _LOGGER.debug("Realtime push updated state for VIN ...%s", vin[-4:])
 
-    ws = ToyotaAppSyncWebSocket(auth, ws_status_callback)
     subscribed_vins = [v.vin for v in (coordinator.data or {}).values() if v.subscribed]
-    region = next((v.region for v in (coordinator.data or {}).values()), "CA")
-
     if subscribed_vins:
-        await ws.start(subscribed_vins, region=region)
-        client.ws = ws
+        await provider.start_realtime_listener(subscribed_vins, realtime_status_callback)
 
     hass.data[DOMAIN][entry.entry_id] = {
-        "client": client,
+        "provider": provider,
         "coordinator": coordinator,
-        "ws": ws,
     }
 
     # Register platforms
@@ -126,23 +120,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.error("Invalid or missing VIN for service %s", service_name)
             return
 
-        vehicle = coordinator.data[vin]
-
         if service_name == SERVICE_DOOR_LOCK:
-            await client.send_remote_command(vin, RemoteCommand.DOOR_LOCK, region=vehicle.region)
+            await provider.send_remote_command(vin, RemoteCommand.DOOR_LOCK)
         elif service_name == SERVICE_DOOR_UNLOCK:
-            await client.send_remote_command(vin, RemoteCommand.DOOR_UNLOCK, region=vehicle.region)
+            await provider.send_remote_command(vin, RemoteCommand.DOOR_UNLOCK)
         elif service_name == SERVICE_START_CHARGE:
-            await client.send_remote_command(vin, RemoteCommand.IMMEDIATE_CHARGE, region=vehicle.region)
+            await provider.send_remote_command(vin, RemoteCommand.IMMEDIATE_CHARGE)
         elif service_name == SERVICE_STOP_CHARGE:
-            await client.send_remote_command(vin, RemoteCommand.CHARGE_STOP, region=vehicle.region)
+            await provider.send_remote_command(vin, RemoteCommand.CHARGE_STOP)
         elif service_name == SERVICE_CLIMATE_START:
-            await client.send_remote_command(vin, RemoteCommand.ENGINE_START, region=vehicle.region)
+            await provider.send_remote_command(vin, RemoteCommand.ENGINE_START)
         elif service_name == SERVICE_CLIMATE_STOP:
-            await client.send_remote_command(vin, RemoteCommand.ENGINE_STOP, region=vehicle.region)
+            await provider.send_remote_command(vin, RemoteCommand.ENGINE_STOP)
         elif service_name == SERVICE_SET_CHARGE_LIMIT:
             limit = int(call.data.get("limit", 80))
-            await client.set_charge_limit(vin, limit, region=vehicle.region)
+            await provider.set_charge_limit(vin, limit)
         elif service_name == SERVICE_REFRESH:
             await coordinator.async_request_refresh()
 
@@ -164,9 +156,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload Toyota Connected Services config entry."""
     entry_data = hass.data[DOMAIN].get(entry.entry_id, {})
-    ws: ToyotaAppSyncWebSocket | None = entry_data.get("ws")
-    if ws:
-        await ws.stop()
+    provider: ToyotaRegionProvider | None = entry_data.get("provider")
+    if provider:
+        await provider.stop_realtime_listener()
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
