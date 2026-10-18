@@ -1,0 +1,181 @@
+# Canonical AppSync GraphQL Schema: Telemetry, Commands, and Subscriptions
+# Shared contract between Python SDK (toyota-connected) and Swift SDK (ConnectedKit / Kaizen iOS)
+
+fragment VehicleStatusFields on VehicleStatus {
+  vin
+  lastUpdateDateTime
+  vehicleState {
+    lastUpdateDateTime
+    driverPosition
+    doors {
+      driverSide { lock { status } position { status } }
+      passengerSide { lock { status } position { status } }
+      rearDriverSide { lock { status } position { status } }
+      rearPassengerSide { lock { status } position { status } }
+    }
+    windows {
+      driverSide { position { status } }
+      passengerSide { position { status } }
+      rearDriverSide { position { status } }
+      rearPassengerSide { position { status } }
+    }
+    hatch { lock { status } position { status } }
+    hood { position { status } }
+    moonroof { position { status } }
+    tires {
+      frontLeft { psi kpa bar displayLowTirePressureWarning }
+      frontRight { psi kpa bar displayLowTirePressureWarning }
+      rearLeft { psi kpa bar displayLowTirePressureWarning }
+      rearRight { psi kpa bar displayLowTirePressureWarning }
+      spare { psi kpa bar displayLowTirePressureWarning }
+    }
+    engine {
+      running
+      status
+      startTime
+      stopTime
+    }
+  }
+  location {
+    latitude
+    longitude
+    lastUpdateDateTime
+  }
+  telemetry {
+    odo { unit value }
+    range { unit value }
+  }
+  electric {
+    lastUpdateDateTime
+    battery {
+      stateOfChargeDisplay { unit value }
+      plugInEnergy { unit value }
+      chargeRemainingAmount { unit value }
+      travelableDistance { unit value }
+      travelableDistanceAC { unit value }
+      powerSupplyPossibleTime { unit value }
+    }
+    charging {
+      chargingStatus
+      chargingState
+      chargeType
+      actualChargingRate { unit value }
+      remainingChargeTime { unit value }
+      remainingChargeTimeTo80Percent { unit value }
+      connector { status plugInInfo plugStatus }
+      chargeSettings {
+        targetLimit { value unit }
+        maxACCurrent { value setting }
+        maxDCPower { value setting }
+        electricSupplyModeLimit { value setting }
+        schedules {
+          settingId
+          enabled
+          startTime
+          endTime
+          daysOfTheWeek
+        }
+      }
+    }
+  }
+}
+
+query GetVehicleStatus($vin: String!) {
+  getVehicleStatus(vin: $vin) {
+    ...VehicleStatusFields
+  }
+}
+
+subscription ReceiveVehicleStatus($vin: String!) {
+  onVehicleStatusUpdated(vin: $vin) {
+    ...VehicleStatusFields
+  }
+}
+
+subscription ReceiveRemoteCommandStatus($vin: String!) {
+  onPostRemoteCallback(vin: $vin) {
+    appRequestNo
+    type
+    category
+    remoteCommandType
+    message
+    status
+    vin
+    command
+    commandEnded
+  }
+}
+
+mutation SendRemoteCommand($command: String!, $autoFixCommands: [String]!) {
+  executeRemoteCommand(commandInputBody: {
+    command: $command
+    autofixCommands: $autoFixCommands
+  }) {
+    payload {
+      requestNo
+      correlationId
+      returnCode
+    }
+    status {
+      messages {
+        responseCode
+        description
+      }
+    }
+  }
+}
+
+mutation PostChargeSettings($chargingTargetLimit: Int, $quickChargePowerLimit: Int, $currentCharge: Int) {
+  postChargeSettings(postChargeSettingsInputBody: {
+    chargingTargetLimit: $chargingTargetLimit
+    quickChargePowerLimit: $quickChargePowerLimit
+    currentCharge: $currentCharge
+  }) {
+    payload {
+      correlationId
+      returnCode
+      message
+    }
+    status {
+      messages {
+        responseCode
+        description
+      }
+    }
+  }
+}
+
+mutation SendPreWakeCommand($guid: String!) {
+  postPreWake(guid: $guid) {
+    timestamp
+    status {
+      messages {
+        responseCode
+      }
+    }
+  }
+}
+
+mutation ConfirmSubscriptionStatus($vin: String!) {
+  confirmSubscriptionActive(vin: $vin, payload: {
+    vehicleCapabilities: { backdoorType: "hatch" }
+  }) {
+    vin
+  }
+}
+
+mutation RefreshVehicleStatus($vin: String!) {
+  postRefreshStatus(vin: $vin) {
+    payload {
+      correlationId
+      appRequestNo
+    }
+    status {
+      messages {
+        responseCode
+        description
+      }
+    }
+    timestamp
+  }
+}

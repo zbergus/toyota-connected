@@ -1,0 +1,32 @@
+{
+  "vin": "4T1HYBRID2024MOCK02",
+  "lastUpdateDateTime": "2026-10-18T12:00:00Z",
+  "vehicleState": {
+    "doors": {
+      "driverSide": { "position": { "status": "closed" }, "lock": { "status": "locked" } },
+      "passengerSide": { "position": { "status": "closed" }, "lock": { "status": "locked" } },
+      "rearDriverSide": { "position": { "status": "closed" }, "lock": { "status": "locked" } },
+      "rearPassengerSide": { "position": { "status": "closed" }, "lock": { "status": "locked" } }
+    },
+    "windows": {
+      "driverSide": { "position": { "status": "closed" } },
+      "passengerSide": { "position": { "status": "closed" } }
+    },
+    "hatch": { "position": { "status": "closed" }, "lock": { "status": "locked" } },
+    "hood": { "position": { "status": "closed" } },
+    "moonroof": { "position": { "status": "closed" } },
+    "tires": {
+      "frontLeft": { "kpa": 235.0, "psi": 34.1, "displayLowTirePressureWarning": false },
+      "frontRight": { "kpa": 235.0, "psi": 34.1, "displayLowTirePressureWarning": false },
+      "rearLeft": { "kpa": 235.0, "psi": 34.1, "displayLowTirePressureWarning": false },
+      "rearRight": { "kpa": 235.0, "psi": 34.1, "displayLowTirePressureWarning": false }
+    },
+    "engine": { "running": false, "status": "stopped" }
+  },
+  "location": { "latitude": 45.4215, "longitude": -75.6972 },
+  "telemetry": {
+    "odo": { "value": 28500.0, "unit": "km" },
+    "range": { "value": 650, "unit": "km" }
+  },
+  "electric": null
+}

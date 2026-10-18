@@ -1,0 +1,15 @@
+{
+  "vehicleStatus": {
+    "doors": {
+      "driverSide": { "position": "closed", "lock": "locked" },
+      "passengerSide": { "position": "closed", "lock": "locked" },
+      "rearDriverSide": { "position": "open", "lock": "unlocked" },
+      "rearPassengerSide": { "position": "closed", "lock": "locked" }
+    },
+    "windows": {
+      "driverSide": { "position": "closed" },
+      "passengerSide": { "position": "open" }
+    },
+    "hatch": { "position": "closed", "lock": "locked" }
+  }
+}

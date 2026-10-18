@@ -1,0 +1,15 @@
+{
+  "telemetry": {
+    "odo": { "value": 10000.0, "unit": "mi" },
+    "range": { "value": 200.0, "unit": "miles" }
+  },
+  "electric": {
+    "battery": {
+      "travelableDistance": { "value": 200.0, "unit": "mi" },
+      "travelableDistanceAC": { "value": 180.0, "unit": "mi" }
+    },
+    "charging": {
+      "chargingStatus": "stopped"
+    }
+  }
+}

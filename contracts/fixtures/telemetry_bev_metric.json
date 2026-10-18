@@ -1,0 +1,50 @@
+{
+  "vin": "4T1BZ4X2024MOCK01",
+  "lastUpdateDateTime": "2026-10-18T12:00:00Z",
+  "vehicleState": {
+    "doors": {
+      "driverSide": { "position": { "status": "closed" }, "lock": { "status": "locked" } },
+      "passengerSide": { "position": { "status": "closed" }, "lock": { "status": "locked" } },
+      "rearDriverSide": { "position": { "status": "closed" }, "lock": { "status": "locked" } },
+      "rearPassengerSide": { "position": { "status": "open" }, "lock": { "status": "unlocked" } }
+    },
+    "windows": {
+      "driverSide": { "position": { "status": "closed" } },
+      "passengerSide": { "position": { "status": "open" } }
+    },
+    "hatch": { "position": { "status": "closed" }, "lock": { "status": "locked" } },
+    "hood": { "position": { "status": "closed" } },
+    "moonroof": { "position": { "status": "closed" } },
+    "tires": {
+      "frontLeft": { "kpa": 240.0, "psi": 34.8, "displayLowTirePressureWarning": false },
+      "frontRight": { "kpa": 242.0, "psi": 35.1, "displayLowTirePressureWarning": false },
+      "rearLeft": { "kpa": 238.0, "psi": 34.5, "displayLowTirePressureWarning": false },
+      "rearRight": { "kpa": 210.0, "psi": 30.5, "displayLowTirePressureWarning": true }
+    },
+    "engine": { "running": false, "status": "stopped" }
+  },
+  "location": { "latitude": 45.4215, "longitude": -75.6972 },
+  "telemetry": {
+    "odo": { "value": 15420.5, "unit": "km" },
+    "range": { "value": 380, "unit": "km" }
+  },
+  "electric": {
+    "battery": {
+      "stateOfChargeDisplay": { "value": 85 },
+      "chargeRemainingAmount": { "value": 82.5 },
+      "travelableDistance": { "value": 410.0, "unit": "km" },
+      "travelableDistanceAC": { "value": 365.0, "unit": "km" }
+    },
+    "charging": {
+      "chargingStatus": "charging",
+      "actualChargingRate": { "value": 11.2, "unit": "kW" },
+      "remainingChargeTime": { "value": 45, "unit": "min" },
+      "remainingChargeTimeTo80Percent": { "value": 0, "unit": "min" },
+      "connector": { "plugStatus": 1, "status": "connected" },
+      "chargeSettings": {
+        "targetLimit": { "value": 90, "unit": "%" },
+        "maxACCurrent": { "value": 32, "setting": "32A" }
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "batteryLevel": 77,
+  "evRange": { "value": 365.5, "unit": "km" },
+  "evRangeWithAc": { "value": 328.0, "unit": "km" },
+  "chargingStatus": "charging",
+  "remainingChargeTime": 45,
+  "canSetNextChargingEvent": true
+}
