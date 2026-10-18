@@ -23,7 +23,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from toyota_connected.models import VehicleStatus
+from toyota_connected.models import ChargingStatus, VehicleGeneration, VehicleStatus
 
 from .base_entity import ToyotaBaseEntity
 from .const import DOMAIN
@@ -36,6 +36,7 @@ class ToyotaSensorEntityDescription(SensorEntityDescription):
     value_fn: Callable[[VehicleStatus], float | int | str | None] = lambda _: None
     is_ev_only: bool = False
     is_fuel_only: bool = False
+    generation_filter: tuple[VehicleGeneration, ...] | None = None
 
 
 SENSOR_DESCRIPTIONS: tuple[ToyotaSensorEntityDescription, ...] = (
@@ -88,7 +89,15 @@ SENSOR_DESCRIPTIONS: tuple[ToyotaSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfPower.KILO_WATT,
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda v: v.electric.charging_power_kw if v.electric else None,
+        value_fn=lambda v: (
+            v.electric.charging_power_kw
+            if (v.electric and v.electric.charging_power_kw is not None)
+            else (
+                0.0
+                if (v.electric and v.electric.charging_status != ChargingStatus.CHARGING)
+                else None
+            )
+        ),
         is_ev_only=True,
     ),
     ToyotaSensorEntityDescription(
@@ -97,7 +106,15 @@ SENSOR_DESCRIPTIONS: tuple[ToyotaSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfTime.MINUTES,
         device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda v: v.electric.time_to_full_minutes if v.electric else None,
+        value_fn=lambda v: (
+            v.electric.time_to_full_minutes
+            if (v.electric and v.electric.time_to_full_minutes is not None)
+            else (
+                0
+                if (v.electric and v.electric.charging_status != ChargingStatus.CHARGING)
+                else None
+            )
+        ),
         is_ev_only=True,
     ),
     ToyotaSensorEntityDescription(
@@ -108,6 +125,7 @@ SENSOR_DESCRIPTIONS: tuple[ToyotaSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda v: v.electric.time_to_80_minutes if v.electric else None,
         is_ev_only=True,
+        generation_filter=(VehicleGeneration.MM24, VehicleGeneration.MM25),
     ),
     # Fuel Telemetry (Gasoline & Hybrid vehicles)
     ToyotaSensorEntityDescription(
@@ -189,6 +207,11 @@ async def async_setup_entry(
             if description.is_ev_only and not vehicle.is_electric:
                 continue
             if description.is_fuel_only and vehicle.is_electric:
+                continue
+            if (
+                description.generation_filter
+                and vehicle.generation not in description.generation_filter
+            ):
                 continue
             entities.append(ToyotaSensor(coordinator, vin, description))
 

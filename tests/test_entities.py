@@ -63,6 +63,24 @@ class TestEntitiesAndDiagnostics(unittest.TestCase):
         self.assertEqual(desc_map["odometer"].value_fn(self.vehicle), 12345.6)
         self.assertEqual(desc_map["tire_front_left"].value_fn(self.vehicle), 240.0)
 
+        # Idle EV test (charging power is 0.0 kW, time to full is 0 min)
+        idle_ev = VehicleStatus(
+            vin="2T3BZ4XIDLE2024",
+            model_name="bZ4X",
+            model_year="2024",
+            generation=VehicleGeneration.MM21,
+            region="CA",
+            is_electric=True,
+            electric=ElectricVehicleStatus(
+                battery_level=71.0,
+                charging_status=ChargingStatus.STOPPED,
+                charging_power_kw=None,
+                time_to_full_minutes=None,
+            ),
+        )
+        self.assertEqual(desc_map["charging_power"].value_fn(idle_ev), 0.0)
+        self.assertEqual(desc_map["time_to_full"].value_fn(idle_ev), 0)
+
         # Gas / Hybrid vehicle test
         gas_vehicle = VehicleStatus(
             vin="4T1B11HK5JU123456",

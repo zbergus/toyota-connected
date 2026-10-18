@@ -11,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from toyota_connected import ToyotaRegionProvider
-from toyota_connected.models import VehicleStatus
+from toyota_connected.models import VehicleGeneration, VehicleStatus
 
 from .base_entity import ToyotaBaseEntity
 from .const import DOMAIN
@@ -34,7 +34,11 @@ async def async_setup_entry(
 
     entities: list[SelectEntity] = []
     for vin, vehicle in (coordinator.data or {}).items():
-        if vehicle.is_electric:
+        # Target charge limit & AC current limit are only supported on MM24+ with Stencil AppSync
+        if vehicle.is_electric and vehicle.generation in (
+            VehicleGeneration.MM24,
+            VehicleGeneration.MM25,
+        ):
             entities.append(ToyotaTargetChargeLimitSelect(coordinator, provider, vin))
             entities.append(ToyotaACCurrentLimitSelect(coordinator, provider, vin))
 
@@ -58,6 +62,17 @@ class ToyotaTargetChargeLimitSelect(ToyotaBaseEntity, SelectEntity):
         self._attr_name = "Target Charge Limit"
 
     @property
+    def available(self) -> bool:
+        v = self.vehicle
+        return bool(
+            super().available
+            and v
+            and v.is_electric
+            and v.electric
+            and v.electric.target_charge_limit is not None
+        )
+
+    @property
     def current_option(self) -> str | None:
         v = self.vehicle
         if not v or not v.electric or v.electric.target_charge_limit is None:
@@ -65,6 +80,13 @@ class ToyotaTargetChargeLimitSelect(ToyotaBaseEntity, SelectEntity):
         return f"{v.electric.target_charge_limit}%"
 
     async def async_select_option(self, option: str) -> None:
+        if not self.available:
+            _LOGGER.warning(
+                "Target charge limit is not supported by vehicle %s (generation %s)",
+                self._vin,
+                self.vehicle.generation if self.vehicle else "unknown",
+            )
+            return
         percent = int(option.replace("%", "").strip())
         _LOGGER.info("Setting target charge limit for %s to %d%%", self._vin, percent)
         await self._provider.set_charge_limit(self._vin, percent)
@@ -88,6 +110,17 @@ class ToyotaACCurrentLimitSelect(ToyotaBaseEntity, SelectEntity):
         self._attr_name = "AC Charging Current Limit"
 
     @property
+    def available(self) -> bool:
+        v = self.vehicle
+        return bool(
+            super().available
+            and v
+            and v.is_electric
+            and v.electric
+            and v.electric.max_ac_current_amps is not None
+        )
+
+    @property
     def current_option(self) -> str | None:
         v = self.vehicle
         if not v or not v.electric or v.electric.max_ac_current_amps is None:
@@ -96,6 +129,13 @@ class ToyotaACCurrentLimitSelect(ToyotaBaseEntity, SelectEntity):
         return "Max" if val >= 127 else f"{val} A"
 
     async def async_select_option(self, option: str) -> None:
+        if not self.available:
+            _LOGGER.warning(
+                "AC charging current limit is not supported by vehicle %s (generation %s)",
+                self._vin,
+                self.vehicle.generation if self.vehicle else "unknown",
+            )
+            return
         amps = 127 if option == "Max" else int(option.replace("A", "").strip())
         _LOGGER.info("Setting max AC current limit for %s to %s", self._vin, option)
         await self._provider.set_ac_current_limit(self._vin, amps)
