@@ -1,4 +1,4 @@
-# Toyota Connected Services (North America & Canada) - Home Assistant Integration
+# Toyota Connected Services (North America) - Home Assistant Integration
 
 A modern, secure, and native Home Assistant integration for Toyota and Lexus Connected Services in North America, with dedicated support for **Canada** and the **2024 Toyota bZ4X (24MM generation BEV)**.
 
@@ -38,7 +38,7 @@ A modern, secure, and native Home Assistant integration for Toyota and Lexus Con
 1. In Home Assistant, open **HACS** > **Integrations**.
 2. Click the three dots in the top right > **Custom repositories**.
 3. Add your repository URL: `https://github.com/zbergus/toyota` with Category: **Integration**.
-4. Search for `Toyota Connected Services (North America & Canada)` and click **Download**.
+4. Search for `Toyota Connected Services (North America)` and click **Download**.
 5. Restart Home Assistant.
 
 ### Method 2: Manual Installation
@@ -53,7 +53,7 @@ A modern, secure, and native Home Assistant integration for Toyota and Lexus Con
 ## Configuration
 
 1. In Home Assistant, go to **Settings** > **Devices & Services** > **Add Integration**.
-2. Search for **Toyota Connected Services (North America & Canada)**.
+2. Search for **Toyota Connected Services (North America)**.
 3. Enter your Toyota account email and password.
 4. When prompted, enter the One-Time Password (OTP) verification code sent to your email or SMS.
 5. Your 2024 bZ4X (and any other vehicles on the account) will be discovered automatically with full sensors and controls.

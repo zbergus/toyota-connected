@@ -1,4 +1,4 @@
-# Toyota Connected Services (North America & Canada) API & Home Assistant Integration Research
+# Toyota Connected Services (North America) API & Home Assistant Integration Research
 
 ## Executive Summary
 
@@ -14,9 +14,9 @@ The goal is to provide the full blueprint for:
 
 ---
 
-## 1. Regional Architecture: North America & Canada vs. Europe
+## 1. Regional Architecture: North America vs. Europe
 
-| Feature / Dimension | Toyota North America & Canada (TMNA / TCI) | Toyota Europe (TME) |
+| Feature / Dimension | Toyota North America (TMNA / TCI) | Toyota Europe (TME) |
 | :--- | :--- | :--- |
 | **User Base** | United States, Canada, Puerto Rico, Mexico | EU, UK, European continent |
 | **Auth Domain** | `login.toyotadriverslogin.com` (ForgeRock OpenAM realm: `tmna-native`) | `b2c-login.toyota-europe.com` (ForgeRock realm: `tme`) |

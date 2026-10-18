@@ -1,6 +1,6 @@
 {
   "domain": "toyota_na",
-  "name": "Toyota Connected Services (North America & Canada)",
+  "name": "Toyota Connected Services (North America)",
   "codeowners": ["@zbergus"],
   "config_flow": true,
   "documentation": "https://github.com/zbergus/toyota",

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 DOMAIN = "toyota_na"
-NAME = "Toyota Connected Services (North America & Canada)"
+NAME = "Toyota Connected Services (North America)"
 
 # Services
 SERVICE_DOOR_LOCK = "door_lock"
