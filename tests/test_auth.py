@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import tests  # Prepares mock Home Assistant stubs if not present
-
 import asyncio
-import base64
-import hashlib
 import time
 import unittest
 from unittest.mock import AsyncMock, patch
 
-from custom_components.toyota_na.client.auth import ToyotaAuth
+import tests  # noqa: F401 - Prepares mock Home Assistant stubs if not present
+from toyota_connected.auth import ToyotaAuth
 
 
 class TestToyotaAuth(unittest.IsolatedAsyncioTestCase):
@@ -21,13 +18,7 @@ class TestToyotaAuth(unittest.IsolatedAsyncioTestCase):
         """Verify RFC 7636 PKCE S256 base64url challenge calculation."""
         verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
         expected_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
-        
-        computed = (
-            base64.urlsafe_b64encode(hashlib.sha256(verifier.encode("ascii")).digest())
-            .rstrip(b"=")
-            .decode("ascii")
-        )
-        self.assertEqual(computed, expected_challenge)
+        self.assertEqual(ToyotaAuth.compute_pkce_challenge(verifier), expected_challenge)
 
     def test_token_loading_and_retrieval(self) -> None:
         """Verify token storage and unix clock parsing."""
@@ -75,6 +66,17 @@ class TestToyotaAuth(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(call_count, 1)
         self.assertEqual(auth._access_token, "new_access")
+
+    async def test_session_reuse_context_manager(self) -> None:
+        """Verify provided session is yielded without being closed."""
+        mock_session = AsyncMock()
+        mock_session.closed = False
+        auth = ToyotaAuth(session=mock_session)
+
+        async with auth._request_session() as session:
+            self.assertIs(session, mock_session)
+
+        mock_session.close.assert_not_called()
 
 
 if __name__ == "__main__":

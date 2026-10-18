@@ -2,24 +2,21 @@
 
 from __future__ import annotations
 
-import tests  # Prepares mock Home Assistant stubs if not present
-
 import unittest
 from unittest.mock import AsyncMock, patch
 
-from custom_components.toyota_na.client import create_toyota_provider
-from custom_components.toyota_na.client.auth import ToyotaAuth
-from custom_components.toyota_na.client.brands import (
+import tests  # noqa: F401 - Prepares mock Home Assistant stubs if not present
+from toyota_connected import create_toyota_provider
+from toyota_connected.auth import ToyotaAuth
+from toyota_connected.brands import (
     DEFAULT_BRAND,
     LEXUS,
     SUBARU,
     TOYOTA,
-    BrandConfig,
     get_brand,
 )
-from custom_components.toyota_na.client.models import VehicleGeneration, VehicleStatus
-from custom_components.toyota_na.client.na_provider import NorthAmericaProvider
-from custom_components.toyota_na.client.rest import ToyotaRestClient
+from toyota_connected.models import VehicleGeneration
+from toyota_connected.na_provider import NorthAmericaProvider
 
 
 class TestMultiBrandRegistry(unittest.IsolatedAsyncioTestCase):
@@ -123,9 +120,10 @@ class TestMultiBrandRegistry(unittest.IsolatedAsyncioTestCase):
         """Verify that when vehicle list is empty for Subaru, v4/account bootstrap is called."""
         provider = NorthAmericaProvider(brand="subaru")
 
-        with patch.object(provider.rest, "get_vehicle_list", new_callable=AsyncMock) as mock_list, \
-             patch.object(provider.rest, "bootstrap_account", new_callable=AsyncMock) as mock_boot:
-
+        with (
+            patch.object(provider.rest, "get_vehicle_list", new_callable=AsyncMock) as mock_list,
+            patch.object(provider.rest, "bootstrap_account", new_callable=AsyncMock) as mock_boot,
+        ):
             # First returns empty list, second call after bootstrap returns Solterra
             mock_list.side_effect = [
                 [],
@@ -146,6 +144,27 @@ class TestMultiBrandRegistry(unittest.IsolatedAsyncioTestCase):
             mock_boot.assert_called_once()
             self.assertEqual(len(vehicles), 1)
             self.assertEqual(vehicles[0].model_name, "Solterra EV")
+
+    async def test_config_flow_brand_retention(self) -> None:
+        """Verify ToyotaConfigFlow retains the selected brand across step_credentials."""
+        from custom_components.toyota_connected.config_flow import ToyotaConfigFlow
+
+        flow = ToyotaConfigFlow()
+        flow.hass = None
+        await flow.async_step_user({"region": "na", "brand": "subaru"})
+        self.assertEqual(flow._brand, "subaru")
+
+        # Simulate provider being None before step_credentials
+        flow._provider = None
+        with patch(
+            "custom_components.toyota_connected.config_flow.create_toyota_provider"
+        ) as mock_create:
+            mock_provider = AsyncMock()
+            mock_create.return_value = mock_provider
+            await flow.async_step_credentials(
+                {"username": "solterra_owner@example.com", "password": "pass"}
+            )
+            mock_create.assert_called_once_with(region="na", brand="subaru", session=None)
 
 
 if __name__ == "__main__":

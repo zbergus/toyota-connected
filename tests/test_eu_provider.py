@@ -2,24 +2,24 @@
 
 from __future__ import annotations
 
-import tests  # Prepares mock Home Assistant stubs if not present
-
-import asyncio
+import json
 import time
 import unittest
+from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from custom_components.toyota_na.client import create_toyota_provider
-from custom_components.toyota_na.client.auth import NotLoggedIn
-from custom_components.toyota_na.client.eu_provider import EuropeProvider
-from custom_components.toyota_na.client.models import (
+import tests  # noqa: F401 - Prepares mock Home Assistant stubs if not present
+from toyota_connected import create_toyota_provider
+from toyota_connected.auth import NotLoggedIn
+from toyota_connected.eu_provider import EuropeProvider
+from toyota_connected.models import (
     ChargingStatus,
-    ElectricVehicleStatus,
     RemoteCommand,
     VehicleGeneration,
     VehicleStatus,
 )
-from custom_components.toyota_na.client.na_provider import NorthAmericaProvider
+from toyota_connected.na_provider import NorthAmericaProvider
 
 
 class TestEuropeProvider(unittest.IsolatedAsyncioTestCase):
@@ -61,11 +61,13 @@ class TestEuropeProvider(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(tokens["guid"], "eu_sub_user_001")
         self.assertEqual(tokens["region"], "eu")
 
-        self.provider.set_tokens({
-            "access_token": "new_access",
-            "refresh_token": "new_refresh",
-            "expires_at": 1700000000.0,
-        })
+        self.provider.set_tokens(
+            {
+                "access_token": "new_access",
+                "refresh_token": "new_refresh",
+                "expires_at": 1700000000.0,
+            }
+        )
         updated = self.provider.get_tokens()
         self.assertEqual(updated["access_token"], "new_access")
         self.assertEqual(updated["refresh_token"], "new_refresh")
@@ -78,7 +80,7 @@ class TestEuropeProvider(unittest.IsolatedAsyncioTestCase):
             await empty_provider.check_tokens()
 
     def test_parse_eu_vehicle_status(self) -> None:
-        """Test European ctpa-oneapi vehicle status payload parsing."""
+        """Test European ctpa-oneapi vehicle status payload parsing from golden fixture."""
         vehicle = VehicleStatus(
             vin="SB1EVTEST12345678",
             model_name="bZ4X",
@@ -86,21 +88,13 @@ class TestEuropeProvider(unittest.IsolatedAsyncioTestCase):
             generation=VehicleGeneration.MM24,
         )
 
-        raw_payload = {
-            "vehicleStatus": {
-                "doors": {
-                    "driverSide": {"position": "closed", "lock": "locked"},
-                    "passengerSide": {"position": "closed", "lock": "locked"},
-                    "rearDriverSide": {"position": "open", "lock": "unlocked"},
-                    "rearPassengerSide": {"position": "closed", "lock": "locked"},
-                },
-                "windows": {
-                    "driverSide": {"position": "closed"},
-                    "passengerSide": {"position": "open"},
-                },
-                "hatch": {"position": "closed", "lock": "locked"},
-            }
-        }
+        fixture_file = (
+            Path(__file__).resolve().parent.parent
+            / "contracts"
+            / "fixtures"
+            / "eu_vehicle_status.json"
+        )
+        raw_payload = json.loads(fixture_file.read_text(encoding="utf-8"))
 
         self.provider._parse_eu_vehicle_status(raw_payload, vehicle)
 
@@ -114,7 +108,7 @@ class TestEuropeProvider(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(vehicle.hatch.locked)
 
     def test_parse_eu_electric_status(self) -> None:
-        """Test European ctpa-oneapi electric status payload parsing."""
+        """Test European ctpa-oneapi electric status payload parsing from golden fixture."""
         vehicle = VehicleStatus(
             vin="SB1EVTEST12345678",
             model_name="bZ4X",
@@ -123,14 +117,13 @@ class TestEuropeProvider(unittest.IsolatedAsyncioTestCase):
             is_electric=True,
         )
 
-        raw_payload = {
-            "batteryLevel": 77,
-            "evRange": {"value": 365.5, "unit": "km"},
-            "evRangeWithAc": {"value": 328.0, "unit": "km"},
-            "chargingStatus": "charging",
-            "remainingChargeTime": 45,
-            "canSetNextChargingEvent": True,
-        }
+        fixture_file = (
+            Path(__file__).resolve().parent.parent
+            / "contracts"
+            / "fixtures"
+            / "eu_electric_status.json"
+        )
+        raw_payload = json.loads(fixture_file.read_text(encoding="utf-8"))
 
         self.provider._parse_eu_electric_status(raw_payload, vehicle)
 
@@ -148,7 +141,9 @@ class TestEuropeProvider(unittest.IsolatedAsyncioTestCase):
         with patch.object(self.provider, "_api_request", new_callable=AsyncMock) as mock_req:
             mock_req.return_value = {"status": "success"}
 
-            res = await self.provider.send_remote_command("SB1EVTEST12345678", RemoteCommand.DOOR_LOCK)
+            res = await self.provider.send_remote_command(
+                "SB1EVTEST12345678", RemoteCommand.DOOR_LOCK
+            )
             self.assertEqual(res, {"status": "success"})
             mock_req.assert_called_once_with(
                 "POST",
@@ -171,7 +166,9 @@ class TestEuropeProvider(unittest.IsolatedAsyncioTestCase):
         with patch.object(self.provider, "_api_request", new_callable=AsyncMock) as mock_req:
             mock_req.return_value = {"status": "climate_started"}
 
-            res = await self.provider.send_remote_command("SB1EVTEST12345678", RemoteCommand.ENGINE_START)
+            res = await self.provider.send_remote_command(
+                "SB1EVTEST12345678", RemoteCommand.ENGINE_START
+            )
             self.assertEqual(res, {"status": "climate_started"})
             mock_req.assert_called_once_with(
                 "POST",
@@ -179,6 +176,47 @@ class TestEuropeProvider(unittest.IsolatedAsyncioTestCase):
                 vin="SB1EVTEST12345678",
                 json_data={"command": "start", "targetTemperature": 21.0},
             )
+
+    async def test_update_vehicle_status_concurrent(self) -> None:
+        """Verify update_vehicle_status fetches status, ev, telemetry, and location concurrently."""
+        vehicle = VehicleStatus(
+            vin="SB1EVTEST12345678",
+            model_name="bZ4X",
+            model_year="2024",
+            generation=VehicleGeneration.MM24,
+            is_electric=True,
+        )
+
+        async def mock_api(method: str, path: str, **kwargs: Any) -> dict[str, Any]:
+            if path == "/v1/vehicle/status":
+                return {"doors": {"driverSide": {"position": "closed", "lock": "locked"}}}
+            if path == "/v1/vehicle/electric/status":
+                return {
+                    "batteryLevel": 88.0,
+                    "evRange": {"value": 350.0},
+                    "chargingStatus": "charging",
+                }
+            if path == "/v3/telemetry":
+                return {
+                    "odometer": {"value": 15420.0},
+                    "fuelLevel": {"value": 0.0},
+                    "distanceToEmpty": {"value": 380.0},
+                }
+            if path == "/v1/location":
+                return {"latitude": 48.8584, "longitude": 2.2945}
+            return {}
+
+        with patch.object(self.provider, "_api_request", side_effect=mock_api):
+            updated = await self.provider.update_vehicle_status(vehicle)
+
+            self.assertTrue(updated.driver_door.closed)
+            self.assertTrue(updated.driver_door.locked)
+            self.assertIsNotNone(updated.electric)
+            self.assertEqual(updated.electric.battery_level, 88.0)
+            self.assertEqual(updated.odometer_km, 15420.0)
+            self.assertEqual(updated.fuel_range_km, 380.0)
+            self.assertEqual(updated.last_parked_latitude, 48.8584)
+            self.assertEqual(updated.last_parked_longitude, 2.2945)
 
 
 if __name__ == "__main__":
