@@ -56,6 +56,19 @@ class TestEntitiesAndDiagnostics(unittest.TestCase):
         self.assertEqual(desc_map["odometer"].value_fn(self.vehicle), 12345.6)
         self.assertEqual(desc_map["tire_front_left"].value_fn(self.vehicle), 240.0)
 
+        # Gas / Hybrid vehicle test
+        gas_vehicle = VehicleStatus(
+            vin="4T1B11HK5JU123456",
+            model_name="RAV4 Hybrid",
+            model_year="2023",
+            generation=VehicleGeneration.MM21,
+            is_electric=False,
+            fuel_level_percent=65.0,
+            fuel_range_km=520.0,
+        )
+        self.assertEqual(desc_map["fuel_level"].value_fn(gas_vehicle), 65.0)
+        self.assertEqual(desc_map["fuel_range"].value_fn(gas_vehicle), 520.0)
+
     def test_diagnostics_redaction(self) -> None:
         """Verify tokens, passwords, GUIDs, and coordinates are redacted."""
         raw_dump = {

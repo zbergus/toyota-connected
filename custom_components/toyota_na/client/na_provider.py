@@ -113,10 +113,13 @@ class NorthAmericaProvider(ToyotaRegionProvider):
         # Telemetry enrichment
         try:
             telemetry = await self.rest.get_telemetry(vehicle.vin, vehicle.generation.value, vehicle.region)
-            if telemetry and vehicle.odometer_km is None:
-                odo = telemetry.get("odometer")
-                if odo is not None:
-                    vehicle.odometer_km = float(odo)
+            if telemetry:
+                if vehicle.odometer_km is None and telemetry.get("odometer") is not None:
+                    vehicle.odometer_km = float(telemetry["odometer"])
+                if vehicle.fuel_level_percent is None and telemetry.get("fuelLevel") is not None:
+                    vehicle.fuel_level_percent = float(telemetry["fuelLevel"])
+                if vehicle.fuel_range_km is None and telemetry.get("distanceToEmpty") is not None:
+                    vehicle.fuel_range_km = float(telemetry["distanceToEmpty"])
         except Exception as e:
             _LOGGER.debug("Telemetry fetch failed: %s", e)
 

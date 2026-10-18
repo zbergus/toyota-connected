@@ -33,6 +33,7 @@ class ToyotaSensorEntityDescription(SensorEntityDescription):
     """Describes a Toyota sensor entity with value extractor."""
     value_fn: Callable[[VehicleStatus], float | int | str | None] = lambda _: None
     is_ev_only: bool = False
+    is_fuel_only: bool = False
 
 
 SENSOR_DESCRIPTIONS: tuple[ToyotaSensorEntityDescription, ...] = (
@@ -100,6 +101,25 @@ SENSOR_DESCRIPTIONS: tuple[ToyotaSensorEntityDescription, ...] = (
         value_fn=lambda v: v.electric.time_to_80_minutes if v.electric else None,
         is_ev_only=True,
     ),
+    # Fuel Telemetry (Gasoline & Hybrid vehicles)
+    ToyotaSensorEntityDescription(
+        key="fuel_level",
+        name="Fuel Level",
+        native_unit_of_measurement=PERCENTAGE,
+        icon="mdi:gas-station",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda v: v.fuel_level_percent,
+        is_fuel_only=True,
+    ),
+    ToyotaSensorEntityDescription(
+        key="fuel_range",
+        name="Distance to Empty",
+        native_unit_of_measurement=UnitOfLength.KILOMETERS,
+        device_class=SensorDeviceClass.DISTANCE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda v: round(v.fuel_range_km, 1) if v.fuel_range_km is not None else None,
+        is_fuel_only=True,
+    ),
     # Odometer & Telemetry
     ToyotaSensorEntityDescription(
         key="odometer",
@@ -157,6 +177,8 @@ async def async_setup_entry(
     for vin, vehicle in (coordinator.data or {}).items():
         for description in SENSOR_DESCRIPTIONS:
             if description.is_ev_only and not vehicle.is_electric:
+                continue
+            if description.is_fuel_only and vehicle.is_electric:
                 continue
             entities.append(ToyotaSensor(coordinator, vin, description))
 

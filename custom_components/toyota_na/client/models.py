@@ -108,6 +108,8 @@ class VehicleStatus:
 
     # Telemetry
     odometer_km: float | None = None
+    fuel_level_percent: float | None = None
+    fuel_range_km: float | None = None
     last_parked_latitude: float | None = None
     last_parked_longitude: float | None = None
 

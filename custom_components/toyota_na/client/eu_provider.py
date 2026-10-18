@@ -280,13 +280,19 @@ class EuropeProvider(ToyotaRegionProvider):
             except Exception as e:
                 _LOGGER.debug("EU /v1/vehicle/electric/status failed for %s: %s", vehicle.vin, e)
 
-        # Telemetry (Odometer)
+        # Telemetry (Odometer & Fuel)
         try:
             telemetry = await self._api_request("GET", "/v3/telemetry", vin=vehicle.vin)
             if telemetry:
                 odo = telemetry.get("odometer") or {}
                 if odo.get("value") is not None:
                     vehicle.odometer_km = float(odo["value"])
+                fuel = telemetry.get("fuelLevel") or {}
+                if fuel.get("value") is not None:
+                    vehicle.fuel_level_percent = float(fuel["value"])
+                dte = telemetry.get("distanceToEmpty") or {}
+                if dte.get("value") is not None:
+                    vehicle.fuel_range_km = float(dte["value"])
         except Exception as e:
             _LOGGER.debug("EU /v3/telemetry failed: %s", e)
 

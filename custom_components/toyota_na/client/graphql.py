@@ -247,6 +247,18 @@ def parse_appsync_vehicle_status(data: dict[str, Any], existing: VehicleStatus) 
         unit = odo.get("unit", "").lower()
         existing.odometer_km = val * 1.60934 if "mi" in unit else val
 
+    range_info = telemetry.get("range") or {}
+    if range_info.get("value") is not None:
+        r_val = float(range_info["value"])
+        r_unit = range_info.get("unit", "").lower()
+        existing.fuel_range_km = r_val * 1.60934 if "mi" in r_unit else r_val
+
+    fuel_info = telemetry.get("fuelLevel") or {}
+    if isinstance(fuel_info, dict) and fuel_info.get("value") is not None:
+        existing.fuel_level_percent = float(fuel_info["value"])
+    elif isinstance(telemetry.get("fuelLevel"), (int, float)):
+        existing.fuel_level_percent = float(telemetry["fuelLevel"])
+
     # Location
     if location.get("latitude") and location.get("longitude"):
         existing.last_parked_latitude = float(location["latitude"])

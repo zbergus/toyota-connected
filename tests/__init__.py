@@ -200,6 +200,7 @@ except ImportError:
         state_class: Any = None
         native_unit_of_measurement: str | None = None
         name: str | None = None
+        icon: str | None = None
 
     class SensorEntity:
         pass
