@@ -1,0 +1,68 @@
+{
+  "payload": {
+    "vehicleStatus": [
+      {
+        "category": "Driver Side",
+        "sections": [
+          {
+            "section": "Door",
+            "values": [
+              {"value": "Close"},
+              {"value": "Lock"}
+            ]
+          },
+          {
+            "section": "Window",
+            "values": [
+              {"value": "Close"}
+            ]
+          }
+        ]
+      },
+      {
+        "category": "Passenger Side",
+        "sections": [
+          {
+            "section": "Door",
+            "values": [
+              {"value": "Close"},
+              {"value": "Lock"}
+            ]
+          },
+          {
+            "section": "Window",
+            "values": [
+              {"value": "Close"}
+            ]
+          }
+        ]
+      },
+      {
+        "category": "Other",
+        "sections": [
+          {
+            "section": "Hatch",
+            "values": [
+              {"value": "Close"},
+              {"value": "Lock"}
+            ]
+          },
+          {
+            "section": "Hood",
+            "values": [
+              {"value": "Close"}
+            ]
+          }
+        ]
+      }
+    ],
+    "telemetry": {
+      "odo": {
+        "value": 37758.0,
+        "unit": "Km"
+      }
+    },
+    "latitude": 45.4215,
+    "longitude": -75.6972
+  }
+}

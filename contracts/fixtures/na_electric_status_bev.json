@@ -1,0 +1,67 @@
+{
+  "payload": {
+    "returnCode": "000000",
+    "positionInfo": {
+      "acquisitionDatetime": "2026-10-18T21:34:45Z",
+      "longitude": -75.6972,
+      "latitude": 45.4215
+    },
+    "vehicleInfo": {
+      "acquisitionDatetime": "2026-10-18T21:46:19Z",
+      "remoteHvacInfo": {
+        "remoteHvacMode": 0,
+        "remoteHvacProhibitionSignal": 1,
+        "temperaturelevel": 29,
+        "settingTemperature": 21.0,
+        "blowerStatus": 0,
+        "frontDefoggerStatus": 0,
+        "rearDefoggerStatus": 0,
+        "frontSeatHeaterStatus": null,
+        "rearSeatHeaterStatus": null,
+        "steeringHeaterStatus": null,
+        "latestAcStartTime": null,
+        "temperatureDisplayFlag": null
+      },
+      "chargeInfo": {
+        "plugStatus": 12,
+        "plugInHistory": 33,
+        "remainingChargeTime": 65535,
+        "evTravelableDistance": 259.9,
+        "evTravelableDistanceSubtractionRate": 11,
+        "evDistanceAC": 231.3,
+        "evDistance": 259.9,
+        "evDistanceUnit": "km",
+        "chargeRemainingAmount": 71,
+        "chargeType": 4,
+        "chargeWeek": 7,
+        "chargeStartTime": "21:00",
+        "chargeEndTime": "17:30",
+        "connectorStatus": 2,
+        "batteryPowerSupplyPossibleTime": 16383,
+        "gasolinePowerSupplyPossibleTime": 1023,
+        "fuelGage": 0,
+        "fuelGageStatus": 1,
+        "gasolineTravelableDistance": 0,
+        "gasolineTravelableDistanceUnit": 1
+      },
+      "timerChargeInfo": [
+        {
+          "settingId": 1,
+          "enabled": true,
+          "startTime": "21:00",
+          "endTime": "17:30",
+          "daysOfTheWeek": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday"
+          ],
+          "nextSettingId": 63
+        }
+      ]
+    }
+  }
+}

@@ -1,5 +1,5 @@
 # Canonical AppSync GraphQL Schema: Telemetry, Commands, and Subscriptions
-# Shared contract between Python SDK (toyota-connected) and Swift SDK (ConnectedKit / Kaizen iOS)
+# Contract specification for AppSync GraphQL telemetry queries, mutations, and subscriptions
 
 fragment VehicleStatusFields on VehicleStatus {
   vin

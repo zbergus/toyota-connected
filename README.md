@@ -46,9 +46,13 @@ Quiescent sleep preservation for vulnerable 12V auxiliary batteries in EVs and h
 ```text
 .
 ├── contracts/
-│   ├── schemas/                      # GraphQL schema definitions shared with Kaizen (iOS)
+│   ├── README.md                     # Direct API contract documentation and endpoint reference
+│   ├── schemas/                      # Telemetry AppSync GraphQL schema definitions
 │   │   └── telemetry.graphql
 │   └── fixtures/                     # Golden JSON payloads for contract verification
+│       ├── na_electric_status_bev.json
+│       ├── na_telemetry_bev.json
+│       ├── na_remote_status.json
 │       ├── telemetry_bev_metric.json
 │       ├── telemetry_bev_imperial.json
 │       ├── telemetry_hybrid_ice.json
@@ -61,6 +65,7 @@ Quiescent sleep preservation for vulnerable 12V auxiliary batteries in EVs and h
 │       ├── brands.py                 # Toyota, Lexus, Subaru registry
 │       ├── smart_refresh.py          # 12V battery drain protection
 │       ├── graphql.py                # AppSync queries & mutations
+│       ├── rest.py                   # OneAPI REST client & telematics parser
 │       ├── na_provider.py            # North America regional provider
 │       └── eu_provider.py            # Europe regional provider
 │
@@ -70,7 +75,7 @@ Quiescent sleep preservation for vulnerable 12V auxiliary batteries in EVs and h
 │       ├── config_flow.py
 │       └── sensor.py, climate.py, etc.
 │
-└── tests/                            # 42 automated unit & contract tests
+└── tests/                            # 44 automated unit & contract tests
 ```
 
 ---

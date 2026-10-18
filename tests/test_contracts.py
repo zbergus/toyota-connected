@@ -1,7 +1,7 @@
 """Contract verification test suite.
 
-Verifies that the Python SDK (toyota-connected) strictly conforms to the shared
-golden JSON fixtures in contracts/fixtures/ that also validate the Swift SDK (ConnectedKit).
+Verifies that the Python SDK (toyota-connected) strictly conforms to the canonical
+golden JSON fixtures in contracts/fixtures/.
 """
 
 from __future__ import annotations
@@ -24,6 +24,11 @@ from toyota_connected.models import (
     VehicleStatus,
 )
 from toyota_connected.na_provider import NorthAmericaProvider
+from toyota_connected.rest import (
+    parse_rest_electric_status,
+    parse_rest_telemetry,
+    parse_rest_vehicle_status,
+)
 
 
 class TestContractFixtures(unittest.IsolatedAsyncioTestCase):
@@ -73,6 +78,52 @@ class TestContractFixtures(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(updated.odometer_km, 28500.0)
         self.assertEqual(updated.fuel_range_km, 650.0)
         self.assertIsNone(updated.electric)
+
+    def test_na_rest_fixtures_contract(self) -> None:
+        """Verify contracts/fixtures/na_*.json fixtures match 21MM BEV domain model."""
+        vehicle = VehicleStatus(
+            vin="4T1BZ4X2024MOCK01",
+            model_name="bZ4X",
+            model_year="2024",
+            generation=VehicleGeneration.MM21,
+            region="CA",
+            is_electric=True,
+        )
+
+        # 1. Electric status fixture
+        elec_data = json.loads(
+            (self.fixtures_dir / "na_electric_status_bev.json").read_text(encoding="utf-8")
+        )
+        parse_rest_electric_status(elec_data, vehicle)
+        self.assertIsNotNone(vehicle.electric)
+        assert vehicle.electric is not None
+        self.assertEqual(vehicle.electric.battery_level, 71.0)
+        self.assertEqual(vehicle.electric.range_km, 259.9)
+        self.assertEqual(vehicle.electric.range_ac_on_km, 231.3)
+        self.assertEqual(vehicle.electric.charging_status, ChargingStatus.STOPPED)
+        self.assertFalse(vehicle.electric.plug_connected)
+        self.assertEqual(vehicle.climate_target_temp_c, 21.0)
+
+        # 2. Telemetry fixture
+        telem_data = json.loads(
+            (self.fixtures_dir / "na_telemetry_bev.json").read_text(encoding="utf-8")
+        )
+        parse_rest_telemetry(telem_data, vehicle)
+        self.assertEqual(vehicle.odometer_km, 37758.0)
+        self.assertEqual(vehicle.tire_front_left.psi, 38.0)
+        self.assertEqual(vehicle.tire_rear_right.psi, 38.0)
+
+        # 3. Remote status fixture
+        remote_data = json.loads(
+            (self.fixtures_dir / "na_remote_status.json").read_text(encoding="utf-8")
+        )
+        parse_rest_vehicle_status(remote_data, vehicle)
+        self.assertTrue(vehicle.driver_door.closed)
+        self.assertTrue(vehicle.driver_door.locked)
+        self.assertTrue(vehicle.hatch.closed)
+        self.assertTrue(vehicle.driver_window_closed)
+        self.assertEqual(vehicle.last_parked_latitude, 45.4215)
+        self.assertEqual(vehicle.last_parked_longitude, -75.6972)
 
     async def test_na_provider_sdk_graphql_methods(self) -> None:
         """Verify new typed SDK methods (confirm_subscription, send_pre_wake, refresh_status) dispatch properly."""

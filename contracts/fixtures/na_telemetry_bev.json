@@ -1,0 +1,24 @@
+{
+  "payload": {
+    "odometer": {
+      "value": 37758.0,
+      "unit": "km"
+    },
+    "flTirePressure": {
+      "value": 38.0,
+      "unit": "psi"
+    },
+    "frTirePressure": {
+      "value": 38.0,
+      "unit": "psi"
+    },
+    "rlTirePressure": {
+      "value": 38.0,
+      "unit": "psi"
+    },
+    "rrTirePressure": {
+      "value": 38.0,
+      "unit": "psi"
+    }
+  }
+}
