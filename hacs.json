@@ -1,0 +1,7 @@
+{
+  "name": "Toyota Connected Services (North America & Canada)",
+  "content_in_root": false,
+  "filename": "toyota_na.zip",
+  "render_readme": true,
+  "homeassistant": "2024.1.0"
+}

@@ -1,0 +1,15 @@
+{
+  "domain": "toyota_na",
+  "name": "Toyota Connected Services (North America & Canada)",
+  "codeowners": ["@zbergus"],
+  "config_flow": true,
+  "documentation": "https://github.com/zbergus/toyota",
+  "iot_class": "cloud_push",
+  "issue_tracker": "https://github.com/zbergus/toyota/issues",
+  "requirements": [
+    "pyjwt>=2.8.0",
+    "cryptography>=42.0.0",
+    "pydantic>=2.5.0"
+  ],
+  "version": "3.0.0"
+}
