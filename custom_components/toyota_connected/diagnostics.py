@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
@@ -45,7 +46,7 @@ async def async_get_config_entry_diagnostics(
                 "is_electric": v.is_electric,
                 "odometer_km": v.odometer_km,
                 "climate_active": v.climate_active,
-                "electric": v.electric.__dict__ if v.electric else None,
+                "electric": dataclasses.asdict(v.electric) if v.electric else None,
             }
 
     return {

@@ -15,14 +15,16 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
+from toyota_connected.models import ChargingStatus, VehicleStatus
+
 from .base_entity import ToyotaBaseEntity
-from .client.models import ChargingStatus, VehicleStatus
 from .const import DOMAIN
 
 
 @dataclass(frozen=True)
 class ToyotaBinarySensorEntityDescription(BinarySensorEntityDescription):
     """Describes a Toyota binary sensor entity."""
+
     is_on_fn: Callable[[VehicleStatus], bool | None] = lambda _: None
     is_ev_only: bool = False
 
@@ -33,7 +35,9 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[ToyotaBinarySensorEntityDescription, ...] = (
         key="charging_active",
         name="Battery Charging",
         device_class=BinarySensorDeviceClass.BATTERY_CHARGING,
-        is_on_fn=lambda v: (v.electric.charging_status == ChargingStatus.CHARGING) if v.electric else False,
+        is_on_fn=lambda v: (
+            (v.electric.charging_status == ChargingStatus.CHARGING) if v.electric else False
+        ),
         is_ev_only=True,
     ),
     ToyotaBinarySensorEntityDescription(
@@ -114,7 +118,9 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Toyota binary sensor entities from a config entry."""
-    coordinator: DataUpdateCoordinator[dict[str, VehicleStatus]] = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    coordinator: DataUpdateCoordinator[dict[str, VehicleStatus]] = hass.data[DOMAIN][
+        entry.entry_id
+    ]["coordinator"]
 
     entities: list[ToyotaBinarySensor] = []
     for vin, vehicle in (coordinator.data or {}).items():

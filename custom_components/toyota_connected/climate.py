@@ -16,9 +16,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
+from toyota_connected import ToyotaRegionProvider
+from toyota_connected.models import RemoteCommand, VehicleStatus
+
 from .base_entity import ToyotaBaseEntity
-from .client import ToyotaRegionProvider
-from .client.models import RemoteCommand, VehicleStatus
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -46,7 +47,6 @@ class ToyotaClimate(ToyotaBaseEntity, ClimateEntity):
     """Climate entity for vehicle pre-conditioning."""
 
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
-    _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT_COOL]
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
     _attr_min_temp = 16.0
     _attr_max_temp = 28.0
@@ -61,6 +61,7 @@ class ToyotaClimate(ToyotaBaseEntity, ClimateEntity):
         super().__init__(coordinator, vin, "climate")
         self._provider = provider
         self._attr_name = "Climate"
+        self._attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT_COOL]
         self._target_temp: float = 21.0
 
     @property

@@ -23,14 +23,16 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
+from toyota_connected.models import VehicleStatus
+
 from .base_entity import ToyotaBaseEntity
-from .client.models import VehicleStatus
 from .const import DOMAIN
 
 
 @dataclass(frozen=True)
 class ToyotaSensorEntityDescription(SensorEntityDescription):
     """Describes a Toyota sensor entity with value extractor."""
+
     value_fn: Callable[[VehicleStatus], float | int | str | None] = lambda _: None
     is_ev_only: bool = False
     is_fuel_only: bool = False
@@ -62,7 +64,9 @@ SENSOR_DESCRIPTIONS: tuple[ToyotaSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         device_class=SensorDeviceClass.DISTANCE,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda v: round(v.electric.range_km, 1) if (v.electric and v.electric.range_km) else None,
+        value_fn=lambda v: (
+            round(v.electric.range_km, 1) if (v.electric and v.electric.range_km) else None
+        ),
         is_ev_only=True,
     ),
     ToyotaSensorEntityDescription(
@@ -71,7 +75,11 @@ SENSOR_DESCRIPTIONS: tuple[ToyotaSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         device_class=SensorDeviceClass.DISTANCE,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda v: round(v.electric.range_ac_on_km, 1) if (v.electric and v.electric.range_ac_on_km) else None,
+        value_fn=lambda v: (
+            round(v.electric.range_ac_on_km, 1)
+            if (v.electric and v.electric.range_ac_on_km)
+            else None
+        ),
         is_ev_only=True,
     ),
     ToyotaSensorEntityDescription(
@@ -171,7 +179,9 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Toyota sensor entities from a config entry."""
-    coordinator: DataUpdateCoordinator[dict[str, VehicleStatus]] = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    coordinator: DataUpdateCoordinator[dict[str, VehicleStatus]] = hass.data[DOMAIN][
+        entry.entry_id
+    ]["coordinator"]
 
     entities: list[ToyotaSensor] = []
     for vin, vehicle in (coordinator.data or {}).items():

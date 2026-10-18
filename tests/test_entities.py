@@ -2,20 +2,27 @@
 
 from __future__ import annotations
 
-import tests  # Prepares mock Home Assistant stubs if not present
-
 import unittest
+from unittest.mock import AsyncMock, MagicMock
 
-from custom_components.toyota_na.client.models import (
+from homeassistant.core import HomeAssistant
+
+import tests  # noqa: F401 - Prepares mock Home Assistant stubs if not present
+from custom_components.toyota_connected import async_unload_entry
+from custom_components.toyota_connected.const import DOMAIN, SERVICE_DOOR_LOCK
+from custom_components.toyota_connected.diagnostics import (
+    TO_REDACT,
+    async_get_config_entry_diagnostics,
+    async_redact_data,
+)
+from custom_components.toyota_connected.sensor import SENSOR_DESCRIPTIONS
+from toyota_connected.models import (
     ChargingStatus,
     ElectricVehicleStatus,
-    OpeningState,
     TirePressure,
     VehicleGeneration,
     VehicleStatus,
 )
-from custom_components.toyota_na.diagnostics import TO_REDACT, async_redact_data
-from custom_components.toyota_na.sensor import SENSOR_DESCRIPTIONS
 
 
 class TestEntitiesAndDiagnostics(unittest.TestCase):
@@ -74,7 +81,10 @@ class TestEntitiesAndDiagnostics(unittest.TestCase):
         raw_dump = {
             "entry": {
                 "username": "user@example.ca",
-                "tokens": {"access_token": "secret_token_123", "refresh_token": "secret_refresh_456"},
+                "tokens": {
+                    "access_token": "secret_token_123",
+                    "refresh_token": "secret_refresh_456",
+                },
                 "guid": "private_guid_789",
             },
             "vehicle": {
@@ -92,6 +102,81 @@ class TestEntitiesAndDiagnostics(unittest.TestCase):
         self.assertEqual(redacted["vehicle"]["latitude"], "**REDACTED**")
         self.assertEqual(redacted["vehicle"]["longitude"], "**REDACTED**")
         self.assertEqual(redacted["vehicle"]["battery"], 88.0)
+
+
+class TestIntegrationLifecycle(unittest.IsolatedAsyncioTestCase):
+    """Test service registration and cleanup on integration entry unload."""
+
+    async def test_service_cleanup_on_unload(self) -> None:
+        hass = HomeAssistant()
+        entry_mock = MagicMock()
+        entry_mock.entry_id = "test_entry_001"
+
+        provider_mock = AsyncMock()
+        hass.data[DOMAIN] = {
+            entry_mock.entry_id: {
+                "provider": provider_mock,
+                "coordinator": MagicMock(),
+            }
+        }
+
+        removed_services: list[tuple[str, str]] = []
+        hass.services.async_remove = lambda domain, srv: removed_services.append((domain, srv))
+
+        unload_ok = await async_unload_entry(hass, entry_mock)
+        self.assertTrue(unload_ok)
+        provider_mock.stop_realtime_listener.assert_called_once()
+        self.assertIn((DOMAIN, SERVICE_DOOR_LOCK), removed_services)
+        self.assertEqual(len(removed_services), 8)
+
+    async def test_async_get_config_entry_diagnostics_with_bev(self) -> None:
+        """Verify diagnostics generation successfully serializes slotted ElectricVehicleStatus."""
+        hass = HomeAssistant()
+        entry_mock = MagicMock()
+        entry_mock.entry_id = "test_entry_bev"
+        entry_mock.as_dict.return_value = {
+            "entry_id": "test_entry_bev",
+            "domain": DOMAIN,
+            "data": {
+                "username": "driver@example.ca",
+                "tokens": {"access_token": "secret_token"},
+            },
+        }
+
+        bev_vehicle = VehicleStatus(
+            vin="4T1BZ4XTEST0000001",
+            model_name="bZ4X",
+            model_year="2024",
+            generation=VehicleGeneration.MM24,
+            is_electric=True,
+            electric=ElectricVehicleStatus(
+                battery_level=82.0,
+                range_km=405.0,
+                charging_status=ChargingStatus.CHARGING,
+                plug_connected=True,
+            ),
+        )
+
+        coordinator_mock = MagicMock()
+        coordinator_mock.data = {bev_vehicle.vin: bev_vehicle}
+
+        hass.data[DOMAIN] = {
+            entry_mock.entry_id: {
+                "coordinator": coordinator_mock,
+            }
+        }
+
+        diag = await async_get_config_entry_diagnostics(hass, entry_mock)
+        self.assertIn("vehicles", diag)
+        self.assertIn("entry", diag)
+
+        redacted_vin = bev_vehicle.vin[:8] + "..." + bev_vehicle.vin[-4:]
+        self.assertIn(redacted_vin, diag["vehicles"])
+        veh_diag = diag["vehicles"][redacted_vin]
+        self.assertEqual(veh_diag["is_electric"], True)
+        self.assertIsNotNone(veh_diag["electric"])
+        self.assertEqual(veh_diag["electric"]["battery_level"], 82.0)
+        self.assertEqual(veh_diag["electric"]["charging_status"], "charging")
 
 
 if __name__ == "__main__":

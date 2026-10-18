@@ -1,0 +1,38 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Toyota / Lexus / Subaru Region & Brand",
+        "description": "Select your geographic region and vehicle brand.",
+        "data": {
+          "region": "Geographic Region",
+          "brand": "Vehicle Brand"
+        }
+      },
+      "credentials": {
+        "title": "Account Credentials",
+        "description": "Enter the credentials for your Toyota, Lexus, or Subaru Connected account.",
+        "data": {
+          "username": "Email / Username",
+          "password": "Password"
+        }
+      },
+      "otp": {
+        "title": "One-Time Password (OTP) Verification",
+        "description": "Enter the 6-digit verification code sent to your phone or email.",
+        "data": {
+          "code": "Verification Code"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the authentication servers.",
+      "invalid_auth": "Invalid email or password.",
+      "invalid_otp": "Invalid verification code. Please check and retry.",
+      "unknown": "An unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "This account is already configured."
+    }
+  }
+}

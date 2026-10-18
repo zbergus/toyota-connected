@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-DOMAIN = "toyota_na"
-NAME = "Toyota Connected Services (North America)"
+DOMAIN = "toyota_connected"
+NAME = "Toyota, Lexus & Solterra Connected Services"
 
 # Services
 SERVICE_DOOR_LOCK = "door_lock"
@@ -17,4 +17,3 @@ SERVICE_CLIMATE_STOP = "climate_stop"
 
 # Polling Intervals
 UPDATE_INTERVAL_SECONDS = 300  # 5 minutes passive poll
-WAKE_INTERVAL_HOURS = 2        # 2 hours max for active wake

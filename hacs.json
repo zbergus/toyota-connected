@@ -1,7 +1,7 @@
 {
-  "name": "Toyota Connected Services (North America)",
+  "name": "Toyota, Lexus & Solterra Connected Services",
   "content_in_root": false,
-  "filename": "toyota_na.zip",
+  "filename": "toyota_connected.zip",
   "render_readme": true,
   "homeassistant": "2024.1.0"
 }

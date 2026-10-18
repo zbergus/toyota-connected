@@ -5,12 +5,14 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
-import voluptuous as vol
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .client import ToyotaRegionProvider, create_toyota_provider, get_brand
-from .client.auth import AuthError, LoginError
+from toyota_connected import ToyotaRegionProvider, create_toyota_provider, get_brand
+from toyota_connected.auth import AuthError, LoginError
+
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -27,7 +29,7 @@ BRAND_CHOICES = {
 }
 
 
-class ToyotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class ToyotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle a config flow for Toyota, Lexus, and Subaru Connected Services."""
 
     VERSION = 1
@@ -44,7 +46,10 @@ class ToyotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self._region = user_input["region"]
             self._brand = user_input.get("brand", "toyota")
-            self._provider = create_toyota_provider(region=self._region, brand=self._brand)
+            session = async_get_clientsession(self.hass) if self.hass else None
+            self._provider = create_toyota_provider(
+                region=self._region, brand=self._brand, session=session
+            )
             return await self.async_step_credentials()
 
         schema = vol.Schema(
@@ -64,23 +69,25 @@ class ToyotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._password = user_input["password"]
 
             if not self._provider:
-                self._provider = create_toyota_provider(self._region)
+                session = async_get_clientsession(self.hass) if self.hass else None
+                self._provider = create_toyota_provider(
+                    region=self._region, brand=self._brand, session=session
+                )
 
             try:
                 result = await self._provider.login(self._username, self._password)
                 if isinstance(result, str):
                     await self._provider.request_tokens(result)
                     return await self._create_entry_from_provider()
-                else:
-                    return await self.async_step_otp()
+                return await self.async_step_otp()
             except LoginError as err:
                 _LOGGER.warning("Toyota login rejected: %s", err)
                 errors["base"] = "invalid_auth"
             except AuthError as err:
                 _LOGGER.error("Toyota authentication error: %s", err)
                 errors["base"] = "cannot_connect"
-            except Exception as err:
-                _LOGGER.exception("Unexpected error during login: %s", err)
+            except Exception:
+                _LOGGER.exception("Unexpected error during login")
                 errors["base"] = "unknown"
 
         schema = vol.Schema(
@@ -98,10 +105,15 @@ class ToyotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             otp_code = user_input["code"].strip()
             if not self._provider:
-                self._provider = create_toyota_provider(self._region)
+                session = async_get_clientsession(self.hass) if self.hass else None
+                self._provider = create_toyota_provider(
+                    region=self._region, brand=self._brand, session=session
+                )
 
             try:
-                result = await self._provider.login(self._username or "", self._password, otp=otp_code)
+                result = await self._provider.login(
+                    self._username or "", self._password, otp=otp_code
+                )
                 if isinstance(result, str):
                     await self._provider.request_tokens(result)
                     return await self._create_entry_from_provider()
@@ -109,8 +121,8 @@ class ToyotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except LoginError as err:
                 _LOGGER.warning("Toyota OTP verification failed: %s", err)
                 errors["base"] = "invalid_otp"
-            except Exception as err:
-                _LOGGER.exception("Unexpected error during OTP: %s", err)
+            except Exception:
+                _LOGGER.exception("Unexpected error during OTP")
                 errors["base"] = "unknown"
 
         schema = vol.Schema({vol.Required("code"): str})
@@ -150,5 +162,6 @@ class ToyotaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._region = entry_data.get("region", "na")
         self._brand = entry_data.get("brand", "toyota")
         self._username = entry_data.get("username")
-        self._provider = create_toyota_provider(self._region, brand=self._brand)
+        session = async_get_clientsession(self.hass) if self.hass else None
+        self._provider = create_toyota_provider(self._region, brand=self._brand, session=session)
         return await self.async_step_credentials()

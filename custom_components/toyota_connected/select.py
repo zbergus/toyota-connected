@@ -10,9 +10,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
+from toyota_connected import ToyotaRegionProvider
+from toyota_connected.models import VehicleStatus
+
 from .base_entity import ToyotaBaseEntity
-from .client import ToyotaRegionProvider
-from .client.models import VehicleStatus
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)

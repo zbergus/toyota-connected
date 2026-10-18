@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
+    DataUpdateCoordinator,
+)
 
-from .client.models import VehicleStatus
+from toyota_connected.models import VehicleStatus
+
 from .const import DOMAIN
 
 
-class ToyotaBaseEntity(CoordinatorEntity):
+class ToyotaBaseEntity(CoordinatorEntity[DataUpdateCoordinator[dict[str, VehicleStatus]]]):
     """Base class for all Toyota entities."""
 
     _attr_has_entity_name = True
@@ -21,7 +25,6 @@ class ToyotaBaseEntity(CoordinatorEntity):
         unique_suffix: str,
     ) -> None:
         super().__init__(coordinator)
-        self.coordinator: DataUpdateCoordinator[dict[str, VehicleStatus]] = coordinator
         self._vin = vin
         self._attr_unique_id = f"{DOMAIN}_{vin}_{unique_suffix}"
 

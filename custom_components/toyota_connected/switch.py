@@ -11,9 +11,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
+from toyota_connected import ToyotaRegionProvider
+from toyota_connected.models import ChargingStatus, RemoteCommand, VehicleStatus
+
 from .base_entity import ToyotaBaseEntity
-from .client import ToyotaRegionProvider
-from .client.models import ChargingStatus, RemoteCommand, VehicleStatus
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -58,7 +59,9 @@ class ToyotaChargingSwitch(ToyotaBaseEntity, SwitchEntity):
     @property
     def is_on(self) -> bool:
         v = self.vehicle
-        return (v.electric.charging_status == ChargingStatus.CHARGING) if (v and v.electric) else False
+        return (
+            (v.electric.charging_status == ChargingStatus.CHARGING) if (v and v.electric) else False
+        )
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         _LOGGER.info("Sending immediate charging start command for %s", self._vin)

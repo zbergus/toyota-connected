@@ -1,10 +1,17 @@
 """Test environment setup: mocks Home Assistant modules if running standalone."""
 
+import importlib.util
 import sys
 import types
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
+from pathlib import Path
 from typing import Any
+
+# Ensure src/ is in sys.path for standalone test runs
+_SRC_PATH = Path(__file__).resolve().parent.parent / "src"
+if _SRC_PATH.exists() and str(_SRC_PATH) not in sys.path:
+    sys.path.insert(0, str(_SRC_PATH))
 
 
 def _ensure_module(name: str) -> types.ModuleType:
@@ -15,9 +22,7 @@ def _ensure_module(name: str) -> types.ModuleType:
     return sys.modules[name]
 
 
-try:
-    import homeassistant
-except ImportError:
+if importlib.util.find_spec("homeassistant") is None:
     # Set up lightweight mock stubs so standalone python3 -m unittest works
     ha = _ensure_module("homeassistant")
     ha_components = _ensure_module("homeassistant.components")
@@ -37,6 +42,21 @@ except ImportError:
     ha_climate = _ensure_module("homeassistant.components.climate")
     ha_entity_plat = _ensure_module("homeassistant.helpers.entity_platform")
     ha_data_flow = _ensure_module("homeassistant.data_entry_flow")
+    ha_aiohttp = _ensure_module("homeassistant.helpers.aiohttp_client")
+    ha_aiohttp.async_get_clientsession = lambda hass: None
+
+    # Voluptuous stub if not installed in standalone environment
+    if importlib.util.find_spec("voluptuous") is None:
+        vol_mod = _ensure_module("voluptuous")
+
+        class Schema:
+            def __init__(self, schema, *args, **kwargs):
+                self.schema = schema
+
+        vol_mod.Schema = Schema
+        vol_mod.Required = lambda k, default=None: k
+        vol_mod.Optional = lambda k, default=None: k
+        vol_mod.In = lambda choices: choices
 
     # AddEntitiesCallback
     class AddEntitiesCallback:
@@ -45,15 +65,24 @@ except ImportError:
 
     ha_entity_plat.AddEntitiesCallback = AddEntitiesCallback
 
+    async def _async_return_none(*args, **kwargs):
+        return None
+
+    async def _async_return_true(*args, **kwargs):
+        return True
+
     # Core classes
     class HomeAssistant:
         def __init__(self):
             self.data = {}
-            self.services = types.SimpleNamespace(async_register=lambda *args, **kwargs: None)
+            self.services = types.SimpleNamespace(
+                async_register=lambda *args, **kwargs: None,
+                async_remove=lambda *args, **kwargs: None,
+            )
             self.config_entries = types.SimpleNamespace(
-                async_update_entry=lambda *args, **kwargs: None,
-                async_forward_entry_setups=lambda *args, **kwargs: None,
-                async_unload_platforms=lambda *args, **kwargs: True,
+                async_update_entry=_async_return_none,
+                async_forward_entry_setups=_async_return_none,
+                async_unload_platforms=_async_return_true,
             )
 
     class ServiceCall:
@@ -71,7 +100,7 @@ except ImportError:
     ha_data_flow.FlowResult = FlowResult
 
     # Constants & Units
-    class Platform(str, Enum):
+    class Platform(StrEnum):
         SENSOR = "sensor"
         BINARY_SENSOR = "binary_sensor"
         SWITCH = "switch"
@@ -82,21 +111,21 @@ except ImportError:
     ha_const.Platform = Platform
     ha_const.PERCENTAGE = "%"
 
-    class UnitOfLength(str, Enum):
+    class UnitOfLength(StrEnum):
         KILOMETERS = "km"
         MILES = "mi"
 
-    class UnitOfPower(str, Enum):
+    class UnitOfPower(StrEnum):
         KILO_WATT = "kW"
 
-    class UnitOfPressure(str, Enum):
+    class UnitOfPressure(StrEnum):
         KPA = "kPa"
         PSI = "psi"
 
-    class UnitOfTime(str, Enum):
+    class UnitOfTime(StrEnum):
         MINUTES = "min"
 
-    class UnitOfTemperature(str, Enum):
+    class UnitOfTemperature(StrEnum):
         CELSIUS = "°C"
 
     ha_const.UnitOfLength = UnitOfLength
@@ -159,6 +188,9 @@ except ImportError:
         def async_set_updated_data(self, data):
             self.data = data
 
+        def __class_getitem__(cls, item):
+            return cls
+
     class UpdateFailed(Exception):
         pass
 
@@ -172,6 +204,9 @@ except ImportError:
         def async_write_ha_state(self):
             pass
 
+        def __class_getitem__(cls, item):
+            return cls
+
     ha_update.CoordinatorEntity = CoordinatorEntity
 
     # Device registry
@@ -182,14 +217,14 @@ except ImportError:
     ha_device.DeviceInfo = DeviceInfo
 
     # Sensor entity classes
-    class SensorDeviceClass(str, Enum):
+    class SensorDeviceClass(StrEnum):
         BATTERY = "battery"
         DISTANCE = "distance"
         POWER = "power"
         DURATION = "duration"
         PRESSURE = "pressure"
 
-    class SensorStateClass(str, Enum):
+    class SensorStateClass(StrEnum):
         MEASUREMENT = "measurement"
         TOTAL_INCREASING = "total_increasing"
 
@@ -211,7 +246,7 @@ except ImportError:
     ha_sensor.SensorEntity = SensorEntity
 
     # Binary sensor entity classes
-    class BinarySensorDeviceClass(str, Enum):
+    class BinarySensorDeviceClass(StrEnum):
         BATTERY_CHARGING = "battery_charging"
         PLUG = "plug"
         DOOR = "door"
@@ -231,7 +266,7 @@ except ImportError:
     ha_bin_sensor.BinarySensorEntity = BinarySensorEntity
 
     # Switch entity classes
-    class SwitchDeviceClass(str, Enum):
+    class SwitchDeviceClass(StrEnum):
         SWITCH = "switch"
 
     class SwitchEntity:
@@ -253,7 +288,7 @@ except ImportError:
     ha_lock.LockEntity = LockEntity
 
     # Climate entity classes
-    class HVACMode(str, Enum):
+    class HVACMode(StrEnum):
         OFF = "off"
         HEAT_COOL = "heat_cool"
 
@@ -271,8 +306,11 @@ except ImportError:
     # Diagnostics
     def async_redact_data(data, to_redact):
         if isinstance(data, dict):
-            return {k: ("**REDACTED**" if k in to_redact else async_redact_data(v, to_redact)) for k, v in data.items()}
-        elif isinstance(data, list):
+            return {
+                k: ("**REDACTED**" if k in to_redact else async_redact_data(v, to_redact))
+                for k, v in data.items()
+            }
+        if isinstance(data, list):
             return [async_redact_data(item, to_redact) for item in data]
         return data
 
