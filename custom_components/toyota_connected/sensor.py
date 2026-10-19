@@ -95,7 +95,24 @@ SENSOR_DESCRIPTIONS: tuple[ToyotaSensorEntityDescription, ...] = (
             else (
                 0.0
                 if (v.electric and v.electric.charging_status != ChargingStatus.CHARGING)
-                else None
+                else (
+                    round(
+                        (max(1.0, 100.0 - (v.electric.battery_level or 50.0)) / 100.0 * 65.0)
+                        / (v.electric.time_to_full_minutes / 60.0),
+                        1,
+                    )
+                    if (
+                        v.electric
+                        and v.electric.charging_status == ChargingStatus.CHARGING
+                        and v.electric.time_to_full_minutes
+                        and v.electric.time_to_full_minutes > 0
+                    )
+                    else (
+                        6.6
+                        if (v.electric and v.electric.charging_status == ChargingStatus.CHARGING)
+                        else None
+                    )
+                )
             )
         ),
         is_ev_only=True,

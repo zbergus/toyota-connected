@@ -325,6 +325,29 @@ def parse_rest_electric_status(data: dict[str, Any], vehicle: VehicleStatus) -> 
     vehicle.electric.plug_connected = is_plugged
     vehicle.electric.time_to_full_minutes = rem_time
 
+    # Active charging rate (kW)
+    if charge_status == ChargingStatus.CHARGING:
+        api_rate = _safe_float(
+            (charge_info.get("actualChargingRate") or {}).get("value")
+            if isinstance(charge_info.get("actualChargingRate"), dict)
+            else charge_info.get("chargingRate") or charge_info.get("chargingPower")
+        )
+        if api_rate is not None and api_rate > 0:
+            vehicle.electric.charging_power_kw = api_rate
+        elif rem_time and rem_time > 0:
+            current_soc = soc if soc is not None else 50.0
+            remaining_pct = max(1.0, 100.0 - current_soc)
+            # bZ4X nominal usable capacity ~65.0 kWh
+            energy_kwh = (remaining_pct / 100.0) * 65.0
+            hours_remaining = rem_time / 60.0
+            vehicle.electric.charging_power_kw = round(energy_kwh / hours_remaining, 1)
+        elif plug_val == "56":
+            vehicle.electric.charging_power_kw = 50.0
+        else:
+            vehicle.electric.charging_power_kw = 6.6
+    else:
+        vehicle.electric.charging_power_kw = 0.0
+
     # Climate
     if hvac_info.get("settingTemperature") is not None:
         vehicle.climate_target_temp_c = _safe_float(hvac_info["settingTemperature"])

@@ -172,6 +172,29 @@ class TestVehicleTelemetryParsing(unittest.TestCase):
         self.assertEqual(self.ev_vehicle.electric.charging_status, ChargingStatus.STOPPED)
         self.assertIsNone(self.ev_vehicle.electric.time_to_full_minutes)
         self.assertEqual(self.ev_vehicle.climate_target_temp_c, 21.0)
+        self.assertEqual(self.ev_vehicle.electric.charging_power_kw, 0.0)
+
+        # 2b. Test REST electric status while actively charging
+        mock_charging_status = {
+            "payload": {
+                "vehicleInfo": {
+                    "chargeInfo": {
+                        "chargeRemainingAmount": 97,
+                        "evDistance": 351.7,
+                        "evDistanceAC": 302.5,
+                        "evDistanceUnit": "km",
+                        "plugStatus": 40,
+                        "remainingChargeTime": 50,
+                    },
+                }
+            }
+        }
+        parse_rest_electric_status(mock_charging_status, self.ev_vehicle)
+        self.assertEqual(self.ev_vehicle.electric.charging_status, ChargingStatus.CHARGING)
+        self.assertTrue(self.ev_vehicle.electric.plug_connected)
+        self.assertEqual(self.ev_vehicle.electric.time_to_full_minutes, 50)
+        # (100 - 97) / 100 * 65.0 = 1.95 kWh; 1.95 / (50/60) = 2.34 kW -> 2.3 kW
+        self.assertEqual(self.ev_vehicle.electric.charging_power_kw, 2.3)
 
         # 3. Test REST telemetry with dict odometer and tire pressures
         mock_telemetry = {
