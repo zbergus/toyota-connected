@@ -119,6 +119,10 @@ This project builds upon the pioneering reverse engineering and Home Assistant i
 
 We are deeply grateful to both communities for their contributions to automotive reverse engineering and Home Assistant vehicle telemetry.
 
+### Development & AI Collaboration
+
+In the spirit of open-source transparency, this project was developed through pair-programming with advanced AI coding agents (Google Antigravity / Claude Code) alongside **Zachary Bergeron** ([@zbergus](https://github.com/zbergus)). AI assistance was utilized to accelerate protocol harmonization across regional endpoints, schema typing, and contract test generation, with strict human-in-the-loop validation, safety guardrails (such as 12V auxiliary battery protection), and local hardware testing.
+
 ---
 
 ## Testing
