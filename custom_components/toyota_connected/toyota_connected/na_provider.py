@@ -161,9 +161,7 @@ class NorthAmericaProvider(ToyotaRegionProvider):
         if not uses_appsync:
             # 1. Fetch remote vehicle status (doors, windows, locks, hood, hatch)
             try:
-                status_res = await self.rest.get_vehicle_status(
-                    vehicle.vin, region=vehicle.region
-                )
+                status_res = await self.rest.get_vehicle_status(vehicle.vin, region=vehicle.region)
                 if status_res:
                     parse_rest_vehicle_status(status_res, vehicle)
             except Exception as e:

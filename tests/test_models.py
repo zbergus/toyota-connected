@@ -118,14 +118,20 @@ class TestVehicleTelemetryParsing(unittest.TestCase):
                     {
                         "category": "Driver Side",
                         "sections": [
-                            {"section": "Door", "values": [{"value": "Closed"}, {"value": "Locked"}]},
+                            {
+                                "section": "Door",
+                                "values": [{"value": "Closed"}, {"value": "Locked"}],
+                            },
                             {"section": "Window", "values": [{"value": "Closed"}]},
                         ],
                     },
                     {
                         "category": "Other",
                         "sections": [
-                            {"section": "Hatch", "values": [{"value": "Closed"}, {"value": "Locked"}]},
+                            {
+                                "section": "Hatch",
+                                "values": [{"value": "Closed"}, {"value": "Locked"}],
+                            },
                             {"section": "Hood", "values": [{"value": "Closed"}]},
                         ],
                     },

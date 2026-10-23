@@ -138,7 +138,11 @@ class ToyotaRestClient:
                 res = await self.request(
                     "GET", endpoint, vin=vin, region=region, extra_headers=extra
                 )
-                if res and isinstance(res, dict) and (res.get("vehicleInfo") or res.get("chargeInfo")):
+                if (
+                    res
+                    and isinstance(res, dict)
+                    and (res.get("vehicleInfo") or res.get("chargeInfo"))
+                ):
                     return res
             except (aiohttp.ClientError, KeyError, ValueError) as e:
                 _LOGGER.debug("Failed electric status %s for %s: %s", endpoint, vin, e)
@@ -198,7 +202,10 @@ def _safe_int(val: Any) -> int | None:
 def parse_rest_vehicle_status(data: dict[str, Any], vehicle: VehicleStatus) -> None:
     """Parse OneAPI v1/global/remote/status payload into VehicleStatus."""
     payload = data.get("payload") if isinstance(data, dict) and "payload" in data else data
-    status_list = payload.get("vehicleStatus") if isinstance(payload, dict) else None
+    if not isinstance(payload, dict):
+        return
+
+    status_list = payload.get("vehicleStatus")
     if not isinstance(status_list, list):
         return
 
@@ -297,7 +304,9 @@ def parse_rest_electric_status(data: dict[str, Any], vehicle: VehicleStatus) -> 
     conn_val = str(charge_info.get("connectorStatus", "")).lower()
 
     is_charging = plug_val in ("40", "56", "charging")
-    is_plugged = is_charging or (plug_val not in ("12", "unplugged") and conn_val in ("1", "plugged"))
+    is_plugged = is_charging or (
+        plug_val not in ("12", "unplugged") and conn_val in ("1", "plugged")
+    )
 
     if is_charging:
         charge_status = ChargingStatus.CHARGING
@@ -359,7 +368,11 @@ def parse_rest_electric_status(data: dict[str, Any], vehicle: VehicleStatus) -> 
 
 def parse_rest_telemetry(telemetry: dict[str, Any], vehicle: VehicleStatus) -> None:
     """Parse OneAPI v2/telemetry payload into VehicleStatus."""
-    payload = telemetry.get("payload") if isinstance(telemetry, dict) and "payload" in telemetry else telemetry
+    payload = (
+        telemetry.get("payload")
+        if isinstance(telemetry, dict) and "payload" in telemetry
+        else telemetry
+    )
     if not isinstance(payload, dict):
         return
 
@@ -387,9 +400,7 @@ def parse_rest_telemetry(telemetry: dict[str, Any], vehicle: VehicleStatus) -> N
                     return TirePressure(
                         kpa=val, psi=round(val / 6.89476, 1), low_pressure_warning=low
                     )
-                return TirePressure(
-                    psi=val, kpa=round(val * 6.89476, 1), low_pressure_warning=low
-                )
+                return TirePressure(psi=val, kpa=round(val * 6.89476, 1), low_pressure_warning=low)
         return TirePressure()
 
     if "flTirePressure" in payload:

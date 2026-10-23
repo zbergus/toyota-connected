@@ -33,6 +33,7 @@ RESOLVER_API_KEY = os.getenv("TOYOTA_RESOLVER_API_KEY", "pypIHG015k4ABHWbcI4G0a9
 USER_AGENT = "ToyotaOneApp/3.10.0 (com.toyota.oneapp; build:3100; Android 14) okhttp/4.12.0"
 HTTP_TIMEOUT = aiohttp.ClientTimeout(total=60, connect=15)
 
+
 class VehicleNotFoundOnAppSync(RuntimeError):
     """Raised when vehicle is not registered on AppSync GraphQL (e.g. 21MM or non-Stencil vehicles)."""
 
