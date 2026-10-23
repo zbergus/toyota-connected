@@ -108,9 +108,24 @@ Quiescent sleep preservation for vulnerable 12V auxiliary batteries in EVs and h
 
 ---
 
+## Acknowledgments & Upstream Credits
+
+This project builds upon the pioneering reverse engineering and Home Assistant integration work of two foundational open-source projects:
+
+- **[`ha-toyota-na`](https://github.com/orienw/ha-toyota-na)** maintained by **[@orienw](https://github.com/orienw)** (forked from the original work by **[@widewing](https://github.com/widewing)** and **[@vanstinator](https://github.com/vanstinator)**):
+  - Provided the crucial foundation for North American Toyota Connected Services, ForgeRock OpenAM authentication, OneAPI REST endpoints, and AppSync GraphQL telemetry for modern 21MM and 24MM vehicles.
+- **[`ha_toyota`](https://github.com/pytoyoda/ha_toyota)** / **`mytoyota`** by **[@pytoyoda](https://github.com/pytoyoda)** (authored by **Simon Hansen**, **[@deejay1](https://github.com/deejay1)**, and **[@CM000n](https://github.com/CM000n)**):
+  - Provided the European CTPA architecture, standard Home Assistant async data coordinator modeling, and inspired the design of safe telemetry polling and quiescent battery care.
+
+We are deeply grateful to both communities for their contributions to automotive reverse engineering and Home Assistant vehicle telemetry.
+
+---
+
 ## Testing
 
-Run the automated test suite:
+Run the automated test suite and linter:
 ```bash
-python3 -m unittest discover -s tests -v
+uv run --python 3.12 --extra dev pytest -q
+uv run --python 3.12 --extra dev ruff check .
+uv run --python 3.12 --extra dev mypy src custom_components
 ```

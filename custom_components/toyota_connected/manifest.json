@@ -4,7 +4,7 @@
   "codeowners": ["@zbergus"],
   "config_flow": true,
   "documentation": "https://github.com/zbergus/toyota-connected",
-  "iot_class": "cloud_push",
+  "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/zbergus/toyota-connected/issues",
   "requirements": [],
   "version": "3.0.0"
