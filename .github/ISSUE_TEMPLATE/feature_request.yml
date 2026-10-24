@@ -1,0 +1,50 @@
+name: Feature Request
+description: Propose a new feature, platform entity, or service.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for submitting a feature request for `toyota-connected`!
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - New Entity Platform (Sensor, Binary Sensor, Switch, Lock, Climate, Select, etc.)
+        - Vehicle Model / Generation Support (e.g. MM24+, 21MM, TME)
+        - Connected Services Feature (Remote Commands, Charging Schedule, Preconditioning)
+        - Standalone SDK Feature (`src/toyota_connected`)
+        - Documentation or CI
+    validations:
+      required: true
+
+  - type: input
+    id: vehicles
+    attributes:
+      label: Applicable Vehicles & Brands
+      placeholder: "e.g., All BEVs, 2024 bZ4X Canada, Lexus RZ 450e"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Feature Description
+      description: What would you like to see added or changed?
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical_context
+    attributes:
+      label: Technical Context / API Details (Optional)
+      description: If you have captured sanitized API payloads (OneAPI or AppSync GraphQL) from mobile app proxying, please share relevant schema structures.
+      render: json
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative solutions or workarounds you've considered.
