@@ -1,0 +1,33 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  release:
+    name: Build & Upload Release Asset
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Manifest Version Matches Tag
+        run: |
+          version=$(jq -r .version custom_components/toyota_connected/manifest.json)
+          if [ "v$version" != "${{ github.ref_name }}" ]; then
+            echo "::error::manifest version ($version) does not match git tag (${{ github.ref_name }})"
+            exit 1
+          fi
+
+      - name: Build HACS Release Zip
+        run: git archive --format=zip -o toyota_connected.zip HEAD:custom_components/toyota_connected
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: toyota_connected.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'b') || contains(github.ref_name, 'rc') }}
