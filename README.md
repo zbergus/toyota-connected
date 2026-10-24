@@ -112,16 +112,16 @@ Quiescent sleep preservation for vulnerable 12V auxiliary batteries in EVs and h
 
 This project builds upon the pioneering reverse engineering and Home Assistant integration work of two foundational open-source projects:
 
-- **[`ha-toyota-na`](https://github.com/orienw/ha-toyota-na)** maintained by **[@orienw](https://github.com/orienw)** (forked from the original work by **[@widewing](https://github.com/widewing)** and **[@vanstinator](https://github.com/vanstinator)**):
+- **[`ha-toyota-na`](https://github.com/orienw/ha-toyota-na)** maintained by **Orien Wagner** (forked from the original work by **widewing** and **vanstinator**):
   - Provided the crucial foundation for North American Toyota Connected Services, ForgeRock OpenAM authentication, OneAPI REST endpoints, and AppSync GraphQL telemetry for modern 21MM and 24MM vehicles.
-- **[`ha_toyota`](https://github.com/pytoyoda/ha_toyota)** / **`mytoyota`** by **[@pytoyoda](https://github.com/pytoyoda)** (authored by **Simon Hansen**, **[@deejay1](https://github.com/deejay1)**, and **[@CM000n](https://github.com/CM000n)**):
+- **[`ha_toyota`](https://github.com/pytoyoda/ha_toyota)** / **`mytoyota`** by the **pytoyoda** team (authored by **Simon Hansen**, **deejay1**, and **CM000n**):
   - Provided the European CTPA architecture, standard Home Assistant async data coordinator modeling, and inspired the design of safe telemetry polling and quiescent battery care.
 
 We are deeply grateful to both communities for their contributions to automotive reverse engineering and Home Assistant vehicle telemetry.
 
 ### Development & AI Collaboration
 
-In the spirit of open-source transparency, this project was developed through pair-programming with advanced AI coding agents (Google Antigravity / Claude Code) alongside **Zachary Bergeron** ([@zbergus](https://github.com/zbergus)). AI assistance was utilized to accelerate protocol harmonization across regional endpoints, schema typing, and contract test generation, with strict human-in-the-loop validation, safety guardrails (such as 12V auxiliary battery protection), and local hardware testing.
+In the spirit of open-source transparency, this project was developed through pair-programming with advanced AI coding agents (Google Antigravity / Claude Code) alongside **Zachary Bergeron** (zbergus). AI assistance was utilized to accelerate protocol harmonization across regional endpoints, schema typing, and contract test generation, with strict human-in-the-loop validation, safety guardrails (such as 12V auxiliary battery protection), and local hardware testing.
 
 ---
 
