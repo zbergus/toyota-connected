@@ -94,9 +94,18 @@ class ToyotaRestClient:
         ):
             if resp.status >= 400:
                 text = await resp.text()
-                _LOGGER.error(
-                    "Toyota REST API error %d for %s: %s", resp.status, endpoint, text[:300]
-                )
+                # Log 502/503/504 as warnings to avoid error spam during upstream cloud gateway issues
+                if resp.status in (502, 503, 504):
+                    _LOGGER.warning(
+                        "Toyota REST API gateway issue %d for %s: %s",
+                        resp.status,
+                        endpoint,
+                        text[:300],
+                    )
+                else:
+                    _LOGGER.error(
+                        "Toyota REST API error %d for %s: %s", resp.status, endpoint, text[:300]
+                    )
                 resp.raise_for_status()
 
             data = await resp.json()
@@ -158,7 +167,7 @@ class ToyotaRestClient:
                 "GET", "v2/telemetry", vin=vin, region=region, extra_headers=extra
             )
         except (aiohttp.ClientError, KeyError, ValueError) as e:
-            _LOGGER.warning("Failed to fetch telemetry for %s: %s", vin, e)
+            _LOGGER.debug("Failed to fetch telemetry for %s: %s", vin, e)
             return None
 
     async def send_remote_command(
