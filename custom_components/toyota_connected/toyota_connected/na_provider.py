@@ -38,8 +38,9 @@ from .rest import (
 _LOGGER = logging.getLogger(__name__)
 
 
-# Capability reporting for vehicle-support triage. Strictly allow-listed: only booleans and 0/1
-# flags are ever logged, never strings, so VINs, GUIDs, names and coordinates cannot leak.
+# Capability reporting for vehicle-support triage. Strictly allow-listed: only booleans, 0/1
+# flags and the fixed strings ACTIVE, INACTIVE, E and I are ever logged, so VINs, GUIDs, names
+# and coordinates cannot leak.
 _CAPABILITY_SECTIONS = ("features", "extendedCapabilities", "remoteServiceCapabilities")
 _CAPABILITY_TOP_LEVEL = ("evVehicle", "fuelType", "remoteSubscriptionStatus", "subscriptionStatus")
 

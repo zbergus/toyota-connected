@@ -10,8 +10,8 @@ generated from the matching section below.
 ### Added
 - North America: a debug log line per vehicle with the capability flags Toyota reports (for
   example `can300Capable`, `features`, `extendedCapabilities`), to make vehicle-support reports
-  actionable. It logs only booleans and 0/1 flags plus the generation and model year, never the
-  VIN, account identifiers, names or location.
+  actionable. It logs only booleans, 0/1 flags and the fixed values `ACTIVE`, `INACTIVE`, `E` and `I`, plus
+  the generation and model year, never the VIN, account identifiers, names or location.
 
 ## [3.0.4] - 2026-10-30
 
