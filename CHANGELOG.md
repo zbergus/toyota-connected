@@ -13,6 +13,12 @@ generated from the matching section below.
 - "Vehicle support" issue form for cars that are missing, partially working or newer than the
   documented list (including 2026 model years), asking for the diagnostics download.
 
+### Fixed
+- Diagnostics now also redact the config entry `title` and `unique_id` (which embeds the account
+  identifier).
+- North America: an unrecognised vehicle generation code is now logged as a warning instead of
+  being silently mapped to `UNKNOWN`, so it can be reported.
+
 ### Changed
 - README and architecture docs state plainly that 2026 model years are not yet verified, explain
   what happens for an unrecognised generation code, and point users to the new issue form.

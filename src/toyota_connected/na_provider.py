@@ -106,6 +106,12 @@ class NorthAmericaProvider(ToyotaRegionProvider):
             try:
                 gen = VehicleGeneration(gen_str)
             except ValueError:
+                _LOGGER.warning(
+                    "Unrecognised vehicle generation %r (model year %s); loading as UNKNOWN. "
+                    "Please open a vehicle support issue with this line.",
+                    gen_str,
+                    item.get("modelYear"),
+                )
                 gen = VehicleGeneration.UNKNOWN
 
             region = item.get("region") or "CA"

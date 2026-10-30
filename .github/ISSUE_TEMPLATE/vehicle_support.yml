@@ -10,7 +10,8 @@ body:
 
         > [!CAUTION]
         > **Do not post full VINs, GPS coordinates, passwords or tokens.** The diagnostics file
-        > shortens the VIN and redacts tokens and location, but please skim it before attaching.
+        > shortens the VIN and redacts tokens, account details and location, but please skim it
+        > before attaching.
 
         **To get diagnostics:** Settings → Devices & services → Toyota, Lexus & Solterra Connected
         Services → ⋮ → **Download diagnostics**.
@@ -83,10 +84,11 @@ body:
     id: diagnostics
     attributes:
       label: Diagnostics
-      description: Paste the contents of the downloaded diagnostics file, or drag it into this box.
-      render: json
-    validations:
-      required: true
+      description: |
+        Drag the downloaded diagnostics file into this box. If diagnostics can't be downloaded
+        (for example the integration fails to load), paste the relevant Home Assistant log lines
+        instead, especially any "Unrecognised vehicle generation" warning. Before submitting,
+        check that no `title` or `unique_id` values from an older integration version remain.
 
   - type: input
     id: versions

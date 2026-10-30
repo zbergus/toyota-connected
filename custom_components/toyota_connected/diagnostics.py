@@ -24,6 +24,8 @@ TO_REDACT = {
     "longitude",
     "last_parked_latitude",
     "last_parked_longitude",
+    "title",
+    "unique_id",
 }
 
 

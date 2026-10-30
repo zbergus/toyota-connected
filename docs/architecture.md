@@ -20,10 +20,14 @@ capabilities.
 
 The table is based on vehicles reported by users and on the generation codes the code recognises
 (`17CY`, `17CYPLUS`, `21MM`, `24MM`, `25MM`, `GR86`, `PRE17CY`). 2026 model-year vehicles are not
-yet individually verified. If Toyota's cloud reports a code the integration doesn't recognise, the
-vehicle is loaded as `UNKNOWN` and is not sent down the AppSync GraphQL path, so expect reduced
-entities until support is added. Diagnostics show the reported `generation` and `model_year`, which
-is exactly what's needed to add a new platform. See the
+yet individually verified.
+
+In North America, if Toyota's cloud reports a code the integration doesn't recognise, the vehicle
+is loaded as `UNKNOWN` and is not sent down the AppSync GraphQL path, so expect reduced entities
+until support is added. The raw code is not kept on the vehicle model (diagnostics will show
+`UNKNOWN`); instead the integration logs a warning, `Unrecognised vehicle generation '<code>'`, at
+load time. That line plus the vehicle's model year is what's needed to add a new platform. The
+European provider assigns a generation from the powertrain and has no such fallback. See the
 [vehicle support issue form](https://github.com/zbergus/toyota-connected/issues/new?template=vehicle_support.yml).
 
 ## Multi-brand & multi-region support
