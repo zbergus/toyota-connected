@@ -21,6 +21,19 @@ jobs:
             exit 1
           fi
 
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '
+            $0 ~ "^## \\[" v "\\]" { found=1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "::error::CHANGELOG.md has no section for $version"
+            exit 1
+          fi
+
       - name: Build HACS Release Zip
         run: git archive --format=zip -o toyota_connected.zip HEAD:custom_components/toyota_connected
 
@@ -28,6 +41,6 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: toyota_connected.zip
-          generate_release_notes: true
+          body_path: release-notes.md
           draft: false
           prerelease: ${{ contains(github.ref_name, 'b') || contains(github.ref_name, 'rc') }}

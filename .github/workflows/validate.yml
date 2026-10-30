@@ -27,8 +27,6 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          # No brand assets yet; drop this line once brand/icon.png exists.
-          ignore: brands
 
   sdk-in-sync:
     name: SDK copy in sync
