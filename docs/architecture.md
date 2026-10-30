@@ -16,6 +16,20 @@ capabilities.
 | **Europe (TME)** | **All supported years** | bZ4X, Yaris Cross, RAV4 PHEV, Corolla (EU spec) | European CTPA OneAPI (`ctpa-oneapi.tceu-ctp-prd.toyotaconnectedeurope.io`) | Battery SoC %, EV range, remaining charge time to full, lock/unlock, cabin climate pre-conditioning (`/v2/remote/climate-control`).<br>⚠️ Charge limits are configured in-dash or via scheduled charging, not via cloud mutations. |
 | **17CY / 17CYPLUS** | **2018 – 2022** | Camry, RAV4, Corolla, Highlander, Avalon | Toyota legacy REST gateway | Odometer, fuel level, tire pressures, door lock/unlock, remote engine start (where subscribed). No EV battery management. |
 
+### 2026 model years and newer platforms
+
+The table is based on vehicles reported by users and on the generation codes the code recognises
+(`17CY`, `17CYPLUS`, `21MM`, `24MM`, `25MM`, `GR86`, `PRE17CY`). 2026 model-year vehicles are not
+yet individually verified.
+
+In North America, if Toyota's cloud reports a code the integration doesn't recognise, the vehicle
+is loaded as `UNKNOWN` and is not sent down the AppSync GraphQL path, so expect reduced entities
+until support is added. The raw code is not kept on the vehicle model (diagnostics will show
+`UNKNOWN`); instead the integration logs a warning, `Unrecognised vehicle generation '<code>'`, at
+load time. That line plus the vehicle's model year is what's needed to add a new platform. The
+European provider assigns a generation from the powertrain and has no such fallback. See the
+[vehicle support issue form](https://github.com/zbergus/toyota-connected/issues/new?template=vehicle_support.yml).
+
 ## Multi-brand & multi-region support
 
 - **Multi-brand registry**: unified client for brand scoping, endpoints and authentication

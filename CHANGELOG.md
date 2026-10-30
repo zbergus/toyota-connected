@@ -7,6 +7,25 @@ generated from the matching section below.
 
 ## [Unreleased]
 
+## [3.0.4] - 2026-10-30
+
+### Added
+- "Vehicle support" issue form for cars that are missing, partially working or newer than the
+  documented list (including 2026 model years), asking for the diagnostics download.
+
+### Fixed
+- Diagnostics now also redact the config entry `title` and `unique_id` (which embeds the account
+  identifier).
+- North America: an unrecognised vehicle generation code is now logged as a warning instead of
+  being silently mapped to `UNKNOWN`, so it can be reported.
+
+### Changed
+- README and architecture docs state plainly that 2026 model years are not yet verified, explain
+  what happens for an unrecognised generation code, and point users to the new issue form.
+- Manifest now declares its Home Assistant category (`vehicles_transport.cars_evs`), which
+  clears the hassfest "no categories" warning and files the integration correctly in the
+  integration picker.
+
 ## [3.0.3] - 2026-10-30
 
 ### Added
@@ -61,7 +80,8 @@ generated from the matching section below.
   followed by a delayed refresh).
 - Active charging power is computed in kW for 21MM battery-electric vehicles.
 
-[Unreleased]: https://github.com/zbergus/toyota-connected/compare/v3.0.3...HEAD
+[Unreleased]: https://github.com/zbergus/toyota-connected/compare/v3.0.4...HEAD
+[3.0.4]: https://github.com/zbergus/toyota-connected/compare/v3.0.3...v3.0.4
 [3.0.3]: https://github.com/zbergus/toyota-connected/compare/v3.0.2...v3.0.3
 [3.0.2]: https://github.com/zbergus/toyota-connected/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/zbergus/toyota-connected/compare/v3.0.0...v3.0.1

@@ -1,11 +1,12 @@
 {
   "domain": "toyota_connected",
   "name": "Toyota, Lexus & Solterra Connected Services",
+  "categories": ["vehicles_transport.cars_evs"],
   "codeowners": ["@zbergus"],
   "config_flow": true,
   "documentation": "https://github.com/zbergus/toyota-connected",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/zbergus/toyota-connected/issues",
   "requirements": [],
-  "version": "3.0.3"
+  "version": "3.0.4"
 }
