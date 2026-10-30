@@ -88,5 +88,42 @@ class Na24mmTelemetryFallbackTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(vehicle.fuel_range_km)
 
 
+class CapabilityLoggingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_capability_debug_log_contains_flags_and_no_identifiers(self) -> None:
+        secret_vin = "4T3SECRETVIN00001"
+        provider = NorthAmericaProvider(brand="toyota")
+        provider.rest.get_vehicle_list = AsyncMock(
+            return_value=[
+                {
+                    "vin": secret_vin,
+                    "guid": "11111111-2222-3333-4444-555555555555",
+                    "nickName": "Zak's RAV4",
+                    "modelName": "RAV4 Hybrid",
+                    "modelYear": "2026",
+                    "generation": "24MM",
+                    "region": "US",
+                    "evVehicle": False,
+                    "fuelType": "H",
+                    "can300Capable": False,
+                    "serviceConnectCapable": False,
+                    "remoteSubscriptionStatus": "ACTIVE",
+                    "vehicleLocation": {"latitude": 45.4215, "longitude": -75.6972},
+                    "features": {"can300": 0, "telemetry": 1, "ownerName": "Zak"},
+                    "extendedCapabilities": {"vehicleFinder": True, "lastParkedCapable": True},
+                }
+            ]
+        )
+
+        with self.assertLogs("toyota_connected.na_provider", level="DEBUG") as logs:
+            await provider.get_user_vehicles()
+
+        text = "\n".join(logs.output)
+        self.assertIn("can300Capable", text)
+        self.assertIn("'telemetry': 1", text)
+        self.assertIn("vehicleFinder", text)
+        for forbidden in (secret_vin, "11111111-2222", "Zak", "45.4215", "-75.6972"):
+            self.assertNotIn(forbidden, text)
+
+
 if __name__ == "__main__":
     unittest.main()

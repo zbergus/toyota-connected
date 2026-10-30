@@ -38,6 +38,37 @@ from .rest import (
 _LOGGER = logging.getLogger(__name__)
 
 
+# Capability reporting for vehicle-support triage. Strictly allow-listed: only booleans and 0/1
+# flags are ever logged, never strings, so VINs, GUIDs, names and coordinates cannot leak.
+_CAPABILITY_SECTIONS = ("features", "extendedCapabilities", "remoteServiceCapabilities")
+_CAPABILITY_TOP_LEVEL = ("evVehicle", "fuelType", "remoteSubscriptionStatus", "subscriptionStatus")
+
+
+def _is_flag(value: Any) -> bool:
+    return isinstance(value, bool) or (isinstance(value, int) and value in (0, 1))
+
+
+def summarize_capabilities(item: dict[str, Any]) -> dict[str, Any]:
+    """Return a log-safe summary of the capability flags Toyota reports for a vehicle."""
+    summary: dict[str, Any] = {}
+    for key, value in item.items():
+        if key.endswith("Capable") and _is_flag(value):
+            summary[key] = value
+    for key in _CAPABILITY_TOP_LEVEL:
+        value = item.get(key)
+        if _is_flag(value) or (
+            isinstance(value, str) and value in ("ACTIVE", "INACTIVE", "E", "I")
+        ):
+            summary[key] = value
+    for section in _CAPABILITY_SECTIONS:
+        data = item.get(section)
+        if isinstance(data, dict):
+            flags = {k: v for k, v in data.items() if _is_flag(v)}
+            if flags:
+                summary[section] = flags
+    return summary
+
+
 class NorthAmericaProvider(ToyotaRegionProvider):
     """Regional backend provider for North America (Toyota, Lexus, and Subaru)."""
 
@@ -116,6 +147,12 @@ class NorthAmericaProvider(ToyotaRegionProvider):
 
             region = item.get("region") or "CA"
             self._vin_regions[vin] = region
+            _LOGGER.debug(
+                "Vehicle capabilities (generation=%s, model_year=%s): %s",
+                gen.value,
+                item.get("modelYear"),
+                summarize_capabilities(item),
+            )
             is_ev = bool(item.get("evVehicle") or item.get("fuelType") in ("E", "I"))
             sub_status = (
                 item.get("remoteSubscriptionStatus") == "ACTIVE"
