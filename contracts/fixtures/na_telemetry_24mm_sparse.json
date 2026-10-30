@@ -1,0 +1,18 @@
+{
+  "payload": {
+    "fuelLevel": 79,
+    "odometer": {"value": 166, "unit": "mi"},
+    "nextService": {"value": 4834, "unit": "mi"},
+    "vehicleLocation": {
+      "latitude": 45.4215,
+      "longitude": -75.6972,
+      "displayName": "Last Known"
+    },
+    "flTirePressure": null,
+    "frTirePressure": null,
+    "rlTirePressure": null,
+    "rrTirePressure": null,
+    "distanceToEmpty": null,
+    "speed": null
+  }
+}
