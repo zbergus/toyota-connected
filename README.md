@@ -34,7 +34,19 @@ Needs Home Assistant 2024.1+ and an active connected-services subscription
 - **2018–2022 (17CY / 17CYPLUS)** — Camry, RAV4, Corolla, Highlander, Avalon. Odometer, fuel,
   tire pressures, locks, remote start.
 
+**2026 model years** aren't individually verified yet. A new car reports a generation code, and
+if it isn't one of the above the integration treats it as a basic vehicle until support is added,
+so you may see fewer entities than the car offers. Tell us — see below.
+
 Full feature matrix and platform details: [docs/architecture.md](docs/architecture.md).
+
+### Car missing, or something looks off?
+
+Please [open a vehicle support issue](https://github.com/zbergus/toyota-connected/issues/new?template=vehicle_support.yml)
+with your model, year, region and the diagnostics download (Settings → Devices & services → this
+integration → ⋮ → Download diagnostics). It's usually a quick fix once we can see the generation
+code your car reports, and it helps everyone with the same model. Other problems:
+[bug report](https://github.com/zbergus/toyota-connected/issues/new?template=bug_report.yml).
 
 ## Install
 
@@ -81,7 +93,9 @@ detected generation and powertrain.
 
 - `403` / `504` bursts during Toyota cloud maintenance are transient; the next cycle recovers.
 - A reauth prompt means the refresh token was revoked — sign in again from the integration page.
-- For an issue, enable debug logging for `toyota_connected` and `toyota_connected.rest` and
+- Car not listed, 2026 model year, or missing entities: use the
+  [vehicle support issue form](https://github.com/zbergus/toyota-connected/issues/new?template=vehicle_support.yml).
+- For any issue, enable debug logging for `toyota_connected` and `toyota_connected.rest` and
   attach diagnostics (VIN, tokens and location are redacted).
 
 ## Documentation

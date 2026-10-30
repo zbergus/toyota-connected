@@ -9,7 +9,13 @@ generated from the matching section below.
 
 ## [3.0.4] - 2026-10-30
 
+### Added
+- "Vehicle support" issue form for cars that are missing, partially working or newer than the
+  documented list (including 2026 model years), asking for the diagnostics download.
+
 ### Changed
+- README and architecture docs state plainly that 2026 model years are not yet verified, explain
+  what happens for an unrecognised generation code, and point users to the new issue form.
 - Manifest now declares its Home Assistant category (`vehicles_transport.cars_evs`), which
   clears the hassfest "no categories" warning and files the integration correctly in the
   integration picker.

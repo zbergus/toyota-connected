@@ -1,0 +1,97 @@
+name: Vehicle support / not working on my car
+description: Your vehicle is missing entities, shows wrong values, or fails to load (including 2026 model years and anything not in the supported list).
+labels: ["vehicle-support"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing on your car! Vehicles are matched by the generation code Toyota's cloud
+        reports, so a diagnostics download is the fastest way to get support added or fixed.
+
+        > [!CAUTION]
+        > **Do not post full VINs, GPS coordinates, passwords or tokens.** The diagnostics file
+        > shortens the VIN and redacts tokens and location, but please skim it before attaching.
+
+        **To get diagnostics:** Settings → Devices & services → Toyota, Lexus & Solterra Connected
+        Services → ⋮ → **Download diagnostics**.
+
+  - type: dropdown
+    id: brand
+    attributes:
+      label: Vehicle Brand
+      options:
+        - Toyota
+        - Lexus
+        - Subaru (Solterra)
+    validations:
+      required: true
+
+  - type: input
+    id: model_year
+    attributes:
+      label: Model & Year
+      placeholder: "e.g., 2026 <model and trim>"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: powertrain
+    attributes:
+      label: Powertrain Type
+      options:
+        - BEV (All-Electric)
+        - PHEV (Plug-in Hybrid)
+        - Hybrid (HEV)
+        - ICE (Gasoline)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: region
+    attributes:
+      label: Connected Services Region
+      options:
+        - Canada (CA)
+        - United States (US)
+        - Europe (TME / EU)
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: state
+    attributes:
+      label: What happens?
+      options:
+        - The car is not found / the integration fails to load
+        - The car loads but entities are missing
+        - Entities load but values are wrong or stale
+        - Remote commands (lock, climate, charge) fail
+        - Something else
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: What you see versus what the Toyota/Lexus/Subaru app shows for the same car.
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Paste the contents of the downloaded diagnostics file, or drag it into this box.
+      render: json
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: "Integration version (e.g., v3.0.4), Home Assistant Core version"
+    validations:
+      required: true
