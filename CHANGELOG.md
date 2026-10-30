@@ -7,6 +7,13 @@ generated from the matching section below.
 
 ## [Unreleased]
 
+## [3.0.4] - 2026-10-30
+
+### Changed
+- Manifest now declares its Home Assistant category (`vehicles_transport.cars_evs`), which
+  clears the hassfest "no categories" warning and files the integration correctly in the
+  integration picker.
+
 ## [3.0.3] - 2026-10-30
 
 ### Added
@@ -61,7 +68,8 @@ generated from the matching section below.
   followed by a delayed refresh).
 - Active charging power is computed in kW for 21MM battery-electric vehicles.
 
-[Unreleased]: https://github.com/zbergus/toyota-connected/compare/v3.0.3...HEAD
+[Unreleased]: https://github.com/zbergus/toyota-connected/compare/v3.0.4...HEAD
+[3.0.4]: https://github.com/zbergus/toyota-connected/compare/v3.0.3...v3.0.4
 [3.0.3]: https://github.com/zbergus/toyota-connected/compare/v3.0.2...v3.0.3
 [3.0.2]: https://github.com/zbergus/toyota-connected/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/zbergus/toyota-connected/compare/v3.0.0...v3.0.1
