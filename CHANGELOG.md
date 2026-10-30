@@ -7,6 +7,8 @@ generated from the matching section below.
 
 ## [Unreleased]
 
+## [3.0.5] - 2026-10-30
+
 ### Added
 - North America: a debug log line per vehicle with the capability flags Toyota reports (for
   example `can300Capable`, `features`, `extendedCapabilities`), to make vehicle-support reports
@@ -86,7 +88,8 @@ generated from the matching section below.
   followed by a delayed refresh).
 - Active charging power is computed in kW for 21MM battery-electric vehicles.
 
-[Unreleased]: https://github.com/zbergus/toyota-connected/compare/v3.0.4...HEAD
+[Unreleased]: https://github.com/zbergus/toyota-connected/compare/v3.0.5...HEAD
+[3.0.5]: https://github.com/zbergus/toyota-connected/compare/v3.0.4...v3.0.5
 [3.0.4]: https://github.com/zbergus/toyota-connected/compare/v3.0.3...v3.0.4
 [3.0.3]: https://github.com/zbergus/toyota-connected/compare/v3.0.2...v3.0.3
 [3.0.2]: https://github.com/zbergus/toyota-connected/compare/v3.0.1...v3.0.2
