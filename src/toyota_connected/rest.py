@@ -56,6 +56,7 @@ class ToyotaRestClient:
     async def _headers(self, vin: str = "", region: str = "CA") -> dict[str, str]:
         token = await self._auth.get_access_token()
         guid = await self._auth.get_guid()
+        corr_id = str(uuid.uuid4())
         headers = {
             "AUTHORIZATION": f"Bearer {token}",
             "X-API-KEY": RESOLVER_API_KEY,
@@ -64,6 +65,9 @@ class ToyotaRestClient:
             "x-region": region,
             "X-APPVERSION": "3.10.0",
             "X-LOCALE": "en-US",
+            "X-CorrelationId": corr_id,
+            "X-CORRELATIONID": corr_id,
+            "x-correlationId": corr_id,
             "User-Agent": self._brand.user_agent,
             "Accept": "application/json",
         }
@@ -140,9 +144,13 @@ class ToyotaRestClient:
     async def get_electric_status(
         self, vin: str, region: str = "CA", generation: str = "21MM"
     ) -> dict[str, Any] | None:
-        """Fetch EV electric status (battery SoC, range, charge status)."""
+        """Fetch EV electric status (battery SoC, range, charge status).
+
+        Attempts the modern OneAPI v3 endpoint first; falls back to legacy v2 if
+        the vehicle generation or cloud service requires it.
+        """
         extra = {"X-GENERATION": generation}
-        for endpoint in ("v2/electric/status", "v3/electric/status"):
+        for endpoint in ("v3/electric/status", "v2/electric/status"):
             try:
                 res = await self.request(
                     "GET", endpoint, vin=vin, region=region, extra_headers=extra
@@ -174,10 +182,13 @@ class ToyotaRestClient:
         self, vin: str, command: str, region: str = "CA", generation: str = "21MM"
     ) -> dict[str, Any]:
         """Send remote command (lock, unlock, etc.) via REST API route."""
+        corr_id = str(uuid.uuid4())
         extra = {
             "X-GENERATION": generation,
             "X-BRAND": self._brand.code,
-            "X-CORRELATIONID": str(uuid.uuid4()),
+            "X-CorrelationId": corr_id,
+            "X-CORRELATIONID": corr_id,
+            "x-correlationId": corr_id,
         }
         body = {"command": command, "autoFixPopup": False}
         return await self.request(

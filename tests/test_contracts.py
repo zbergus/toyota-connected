@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import json
 import unittest
+import uuid
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import tests  # noqa: F401 - Prepares mock Home Assistant stubs if not present
 from toyota_connected.graphql import (
@@ -25,6 +26,7 @@ from toyota_connected.models import (
 )
 from toyota_connected.na_provider import NorthAmericaProvider
 from toyota_connected.rest import (
+    ToyotaRestClient,
     parse_rest_electric_status,
     parse_rest_telemetry,
     parse_rest_vehicle_status,
@@ -173,6 +175,60 @@ class TestContractFixtures(unittest.IsolatedAsyncioTestCase):
                 user_agent=provider.brand.user_agent,
                 session=provider._session,
             )
+
+    async def test_rest_headers_contain_correlation_id(self) -> None:
+        """Verify REST client generates valid UUIDv4 correlation IDs with correct casing."""
+        mock_auth = MagicMock()
+        mock_auth.get_access_token = AsyncMock(return_value="mock_token")
+        mock_auth.get_guid = AsyncMock(return_value="mock_guid")
+
+        client = ToyotaRestClient(mock_auth, brand="toyota")
+        headers = await client._headers(vin="4T1TESTVIN001", region="CA")
+
+        self.assertIn("x-correlationId", headers)
+        self.assertIn("X-CorrelationId", headers)
+        self.assertIn("X-CORRELATIONID", headers)
+
+        # Ensure value is a valid UUIDv4
+        parsed = uuid.UUID(headers["x-correlationId"])
+        self.assertEqual(parsed.version, 4)
+        self.assertEqual(headers["X-CorrelationId"], headers["x-correlationId"])
+        self.assertEqual(headers["X-CORRELATIONID"], headers["x-correlationId"])
+
+    async def test_electric_status_prefers_v3_with_v2_fallback(self) -> None:
+        """Verify electric status requests v3 first, and falls back to v2 if v3 fails."""
+        mock_auth = MagicMock()
+        mock_auth.get_access_token = AsyncMock(return_value="mock_token")
+        mock_auth.get_guid = AsyncMock(return_value="mock_guid")
+
+        client = ToyotaRestClient(mock_auth, brand="toyota")
+
+        # Scenario 1: v3 succeeds
+        v3_payload = {"vehicleInfo": {"chargeInfo": {"chargeRemainingAmount": 75}}}
+        with patch.object(client, "request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = v3_payload
+            res = await client.get_electric_status("4T1TESTVIN001", region="CA")
+            self.assertEqual(res, v3_payload)
+            mock_req.assert_called_once_with(
+                "GET",
+                "v3/electric/status",
+                vin="4T1TESTVIN001",
+                region="CA",
+                extra_headers={"X-GENERATION": "21MM"},
+            )
+
+        # Scenario 2: v3 fails, falls back to v2
+        v2_payload = {"vehicleInfo": {"chargeInfo": {"chargeRemainingAmount": 70}}}
+        with patch.object(client, "request", new_callable=AsyncMock) as mock_req:
+            mock_req.side_effect = [
+                ValueError("500 Internal Server Error"),
+                v2_payload,
+            ]
+            res = await client.get_electric_status("4T1TESTVIN001", region="CA")
+            self.assertEqual(res, v2_payload)
+            self.assertEqual(mock_req.call_count, 2)
+            self.assertEqual(mock_req.call_args_list[0][0][1], "v3/electric/status")
+            self.assertEqual(mock_req.call_args_list[1][0][1], "v2/electric/status")
 
 
 if __name__ == "__main__":
