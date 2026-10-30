@@ -1,0 +1,63 @@
+name: Validate
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  hassfest:
+    name: Hassfest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    name: HACS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hacs/action@main
+        with:
+          category: integration
+          # No brand assets yet; drop this line once brand/icon.png exists.
+          ignore: brands
+
+  sdk-in-sync:
+    name: SDK copy in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: custom_components SDK copy must match src/toyota_connected
+        run: |
+          diff -r --exclude=__pycache__ \
+            src/toyota_connected custom_components/toyota_connected/toyota_connected
+          echo "src and the bundled copy are identical"
+
+  release-zip:
+    name: Release zip contents
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build the zip the way release.yml does and check manifest version
+        run: |
+          git archive --format=zip -o /tmp/toyota_connected.zip HEAD:custom_components/toyota_connected
+          python3 - <<'PY'
+          import json
+          import zipfile
+
+          z = zipfile.ZipFile("/tmp/toyota_connected.zip")
+          names = z.namelist()
+          manifest = json.loads(z.read("manifest.json"))
+          assert "translations/en.json" in names, "translations/en.json missing from zip"
+          assert "strings.json" in names, "strings.json missing from zip"
+          assert not any("__pycache__" in n for n in names), "pycache leaked into the zip"
+          print(f'{len(names)} files, manifest version {manifest["version"]}')
+          PY

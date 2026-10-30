@@ -1,4 +1,4 @@
-# Toyota, Lexus & Subaru Connected Services
+# Toyota, Lexus & Solterra Connected Services
 
 Your Toyota, Lexus or Subaru (Solterra Connect) in Home Assistant: battery and charging,
 range, doors and windows, locks, climate and remote start — Canada/US and Europe.

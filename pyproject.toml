@@ -7,7 +7,7 @@ packages = ["src/toyota_connected"]
 
 [project]
 name = "toyota-connected"
-version = "3.0.1"
+version = "3.0.2"
 description = "Unified Connected Services SDK and Home Assistant Integration for Toyota, Lexus, and Subaru vehicles with 12V battery drain protection."
 readme = "README.md"
 requires-python = ">=3.12, <3.15"
